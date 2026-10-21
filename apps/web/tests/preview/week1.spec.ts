@@ -20,6 +20,9 @@ test("discovery filters, empty recovery and detail navigation", async ({
     .getByRole("button", { name: "Xóa bộ lọc", exact: true })
     .last()
     .click();
+  await expect(page).toHaveURL(/\/auctions$/);
+  await expect(page.getByRole("searchbox")).toHaveValue("");
+  await expect(page.locator(".auction-card")).toHaveCount(6);
   await page.getByLabel("Danh mục", { exact: true }).selectOption("Âm thanh");
   await expect(page.locator(".auction-card")).toHaveCount(2);
   await page
