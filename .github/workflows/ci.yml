@@ -39,8 +39,10 @@ jobs:
           docker compose -f infra/compose.app.yaml exec -T api node apps/api/dist/database/migrate.js
           docker compose -f infra/compose.app.yaml up -d --build --wait web
           node scripts/smoke-compose.mjs
+          docker compose -f infra/compose.app.yaml exec -T db psql -U bidhub -d bidhub -v ON_ERROR_STOP=1 < infra/ci-recovery-fixture.sql
+          docker compose -f infra/compose.app.yaml exec -T db psql -U bidhub -d bidhub -v ON_ERROR_STOP=1 -At < infra/restore-fingerprint.sql > /tmp/bidhub-expected.txt
           sh infra/backup.sh /tmp/bidhub-ci.dump
-          sh infra/restore-test.sh /tmp/bidhub-ci.dump
+          sh infra/restore-test.sh /tmp/bidhub-ci.dump /tmp/bidhub-expected.txt
       - name: Container logs and cleanup
         if: always()
         env:

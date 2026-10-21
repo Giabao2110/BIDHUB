@@ -1,5 +1,7 @@
 # Phần Bảo — Infrastructure / Realtime
 
+Current follow-up: [21 October verification and recovery tooling](BAO-VERIFICATION-2026-10-21.md). Dated CI statements below describe earlier runs, not confirmation that the current working tree has passed CI.
+
 ## Đã triển khai
 
 - API HOST cấu hình được cho Docker; structured request logs gồm request ID/status/duration, không log body/header/query.
@@ -33,7 +35,7 @@ Backup: export DB_PASSWORD/DATABASE_URL/WEB_ORIGIN trong shell trước khi ch�
 
 ## Phần phụ thuộc còn lại
 
-BH-14 scheduler đã có implementation và test PostgreSQL được cấu hình trong CI; chưa xác minh cùng bid/cancel service BH-11 của Đạt. BH-19 test tranh chấp bid/close vẫn cần BH-11. BH-17 chưa triển khai host thực tế vì chưa có VPS/domain. BH-18 chưa có backup/restore thực nghiệm hay dashboard host. BH-21/BH-22 release/demo cần toàn bộ MVP. Không ghi các mục này là done.
+BH-14 scheduler đã có implementation; test PostgreSQL thật đã pass local trong Docker ngày 21/10, nhưng chưa xác minh cùng bid/cancel service BH-11 của Đạt. BH-19 test tranh chấp bid/close vẫn cần BH-11. BH-17 chưa triển khai host thực tế vì chưa có VPS/domain. BH-18 đã pass backup/restore lab local với dữ liệu mẫu ngày 21/10; dashboard host, retention và recovery trên host thực tế còn thiếu. BH-21/BH-22 release/demo cần toàn bộ MVP. Không ghi toàn bộ các mục này là done.
 
 Kiểm tra Docker engine trước khi build containers; trên máy hiện tại engine chưa chạy ở thời điểm bắt đầu triển khai. Unit helper tests dùng client giả để kiểm tra thứ tự commit; socket integration dùng server/client thật, không chứng minh transaction PostgreSQL đồng thời.
 
