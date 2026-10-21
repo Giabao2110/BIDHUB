@@ -26,6 +26,19 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Check frontend formatting
+        run: npm run format:check --workspace @bidhub/web
+      - name: Install Chromium for preview tests
+        run: npx playwright install --with-deps chromium
+      - name: Run preview browser tests on four viewport sizes
+        run: npm run test:preview --workspace @bidhub/web
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-test-results
+          path: apps/web/test-results/
+          if-no-files-found: ignore
       - run: docker build -f infra/Dockerfile.api -t bidhub-api:ci .
       - run: docker build -f infra/Dockerfile.web -t bidhub-web:ci .
       - name: Start full application and apply migrations twice

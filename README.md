@@ -4,7 +4,9 @@ Real-Time Auction Platform — Web Application Development project.
 
 ## Current status
 
-Architecture and development foundation, **not a completed auction application**. Implemented: React shell, Express liveness/readiness endpoints, validated Socket.IO rooms, after-commit publishing helper, auction lifecycle scheduler, initial SQL migration, bid policy with unit tests, npm workspaces, CI and Docker/Nginx configuration. Authentication, auction CRUD, transaction-based bidding, frontend realtime integration and actual production deployment remain unfinished.
+Development foundation with a **week-1 frontend prototype, not a completed auction application**. Implemented: five preview screens (discovery, detail, login, create, dashboard), responsive layout/router, labelled fixtures and UI states, Express liveness/readiness endpoints, validated Socket.IO rooms, after-commit publishing helper, auction lifecycle scheduler, initial SQL migration, bid policy with unit tests, npm workspaces, CI and Docker/Nginx configuration. Real authentication, auction CRUD, transaction-based bidding, frontend realtime integration and actual production deployment remain unfinished.
+
+Frontend-only preview: `npm ci`, then `npm run dev:web`. This preview does not require a running API/database. Open `/auctions`, `/login`, `/auctions/new` or `/dashboard`; auction cards link to detail pages. All preview data is labelled as sample data; forms do not authenticate users or save auctions.
 
 ## Team
 
@@ -32,6 +34,8 @@ Open http://localhost:5173. API liveness: http://localhost:3000/api/v1/health/li
 `npm run doctor` checks Node, installed dependencies, local env file, Docker Compose and the Docker Engine without changing the environment. A failure exits nonzero and prints the next setup step.
 
 `npm run typecheck` · `npm test` · `npm run build`
+
+Frontend checks: `npm run format:check --workspace @bidhub/web` and `npm run test:preview --workspace @bidhub/web`. For browser checks on Windows with Edge installed, set `$env:PLAYWRIGHT_CHANNEL = 'msedge'` first. The preview suite uses fixtures, not a live API/database.
 
 ## Working documents
 
