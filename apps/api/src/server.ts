@@ -3,18 +3,34 @@ import { Server } from 'socket.io';
 import { app } from './app.js';
 import { env } from './config/env.js';
 import { pool } from './database/pool.js';
+import { registerAuctionRooms } from './realtime/auction-rooms.js';
+import { createAuctionPublisher } from './realtime/publisher.js';
+import { log } from './observability/logger.js';
+import { processAuctionLifecycle, startAuctionLifecycle } from './jobs/auction-lifecycle.js';
 const server = createServer(app);
-// Only transport is wired. Auction rooms/events are planned in docs/API-CONTRACT.md.
-const io = new Server(server, { cors: { origin: env.webOrigin } });
-server.listen(env.port, '127.0.0.1', () => console.log(`BIDHUB API: http://localhost:${env.port}`));
+const io = new Server(server, {
+  cors: { origin: env.webOrigin }, maxHttpBufferSize: 4096,
+  allowRequest: (req, callback) => callback(null, req.headers.origin === env.webOrigin),
+});
+registerAuctionRooms(io, async id => {
+  const result = await pool.query("SELECT 1 FROM auctions WHERE id=$1 AND status <> 'DRAFT'", [id]);
+  return result.rowCount === 1;
+});
+// Bid/close services call this through withTransaction's afterCommit callback.
+// Inject the returned publisher into services at composition time; services must
+// import publisher.ts, NOT server.ts (which starts the HTTP server).
+const publishAuctionUpdate = createAuctionPublisher(io);
+const stopLifecycle = startAuctionLifecycle(() => processAuctionLifecycle(pool, publishAuctionUpdate));
+server.listen(env.port, env.host, () => log('server_started', { port: env.port, host: env.host }));
 let stopping = false;
 function stop() {
   if (stopping) return;
   stopping = true;
   const deadline = setTimeout(() => process.exit(1), 10000);
   deadline.unref();
-  io.close();
-  server.close(async () => { await pool.end(); clearTimeout(deadline); });
+  io.close(() => {
+    void stopLifecycle().then(() => pool.end()).then(() => { clearTimeout(deadline); log('server_stopped'); });
+  });
 }
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
