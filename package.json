@@ -3,6 +3,7 @@
   "workspaces": ["apps/*", "packages/*"],
   "engines": {"node": ">=24 <25"},
   "scripts": {
+    "doctor": "node scripts/doctor.mjs",
     "dev:web": "npm run dev --workspace @bidhub/web",
     "dev:api": "npm run dev --workspace @bidhub/api",
     "build": "npm run build --workspace @bidhub/contracts && npm run build --workspace @bidhub/api && npm run build --workspace @bidhub/web",
