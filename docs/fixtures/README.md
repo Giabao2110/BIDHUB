@@ -103,8 +103,17 @@ git diff --check
 ```
 
 Fixture tests kiểm tra status/UUID/range tiền/time, lifecycle, result và public
-data. Typecheck bổ sung kiểm tra fixture với shared contracts. `npm test` vẫn
-chỉ chạy 3 policy tests baseline; fixture tests chạy riêng bằng lệnh trên.
-Không kiểm thử HTTP/PostgreSQL/concurrency trong BH-02-A; migrate/seed và
-DB thật thuộc BH-03. Tài liệu [DB-DOMAIN](../DB-DOMAIN.md) ghi các quyết định
-còn mở để không dùng mock thay kết quả tích hợp.
+data. Typecheck bổ sung kiểm tra fixture với shared contracts. Main hiện có
+policy, after-commit, socket room, lifecycle DB và scheduler tests; đọc script
+`apps/api/package.json` để biết suite thực chạy. Lifecycle DB tests cần
+`TEST_DATABASE_URL`, có thể bị skip khi thiếu DB; pass suite không đồng nghĩa
+DB tests đã chạy. Fixture tests vẫn chạy riêng bằng lệnh trên.
+Fixtures không kiểm thử API nghiệp vụ hoặc transaction bid; migrate/seed
+mới thuộc BH-03. Khi đồng bộ main `3439b9b` ngày 22/10/2026, typecheck,
+build, format check, fixture types/tests và `npm test` đã pass. Suite hiện có
+chạy 9/9 tests, không skip, gồm lifecycle trên PostgreSQL 17 tạm cô lập và
+socket server/client thật. Đây là regression code chung, không chứng minh
+bid/cancel service chưa được xây. Browser preview và full-stack Compose
+không chạy local trong lần kiểm tra tài liệu này; xem kết quả CI của PR.
+Tài liệu [DB-DOMAIN](../DB-DOMAIN.md) ghi các quyết định còn mở để không dùng
+mock thay kết quả tích hợp.

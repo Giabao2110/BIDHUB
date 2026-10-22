@@ -1,8 +1,21 @@
 # BH-02-A — ERD và rules cơ sở
 
-Ngày đối chiếu: 14/10/2026. Baseline `49679d3`, migration
+Ngày đối chiếu: 22/10/2026. Main `3439b9b`, migration
 `apps/api/migrations/001_initial.sql`, types `packages/contracts/src/index.ts`.
 Đây là thiết kế và dữ liệu mock để review, không phải bằng chứng API/DB đã chạy.
+
+## Đối chiếu code tích hợp
+
+Main đã có `processAuctionLifecycle` (activate/close/catch-up), runner và
+`withTransaction` với callbacks sau commit. Phần Đạt cần tái sử dụng các seam
+này, review nghiệp vụ và test cạnh tranh cùng bid/cancel service khi có;
+không xây scheduler song song. Shared `AuctionSnapshot` và migration 001
+vẫn khớp fixtures/ERD bên dưới. API auth/auction/bid nghiệp vụ chưa có.
+
+Socket room hiện cho đọc mọi auction có status khác DRAFT. Điều này chưa
+phân biệt CANCELLED từ draft với CANCELLED từng public; ma trận visibility
+bên dưới là đề xuất chưa tích hợp, không mô tả quyền runtime đã bảo vệ đủ.
+Khi quyết định visibility được review, cần phối hợp Bảo áp dụng cùng REST.
 
 ## ERD theo schema hiện có
 
