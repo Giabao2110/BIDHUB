@@ -91,6 +91,11 @@ Repository của bids phải nhận cùng transaction client với auctions. Kh�
 
 SQL migration ban đầu nằm trong `apps/api/migrations/001_initial.sql`. Constraint database bảo vệ kiểu/range/FK; service còn phải bảo vệ quyền sở hữu, trạng thái, matching winning bid với auction và self-bid. Migration sau khi merge phải thêm file `002_...sql`; không chỉnh lịch sử migration đã chạy trên môi trường dùng chung.
 
+ERD đối chiếu migration, các constraint còn thiếu và đề xuất visibility cho
+BH-02-A nằm tại [DB-DOMAIN.md](DB-DOMAIN.md). Fixtures mock đủ năm trạng thái
+và ENDED không bid: [fixtures/README.md](fixtures/README.md). Chưa thay schema
+hoặc triển khai endpoint nghiệp vụ trong phân đoạn này.
+
 ## 6. Vòng đời phiên
 
 `DRAFT -> SCHEDULED -> ACTIVE -> ENDED`. Công bố bản nháp thành SCHEDULED nếu thời gian bắt đầu ở tương lai, ACTIVE nếu bắt đầu ngay. Scheduler kích hoạt phiên đến giờ. Admin có thể chuyển DRAFT/SCHEDULED/ACTIVE sang CANCELLED và ghi lý do. ENDED/CANCELLED là trạng thái cuối.
