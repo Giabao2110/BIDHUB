@@ -1,7 +1,21 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import './styles.css';
-function App() {
-  return <main><p className="eyebrow">BIDHUB</p><h1>Real-Time Auction Platform</h1><p>Discover items. Place your bid. Follow auctions live.</p><section><h2>Project foundation</h2><p>The application shell is ready. Auction listings, accounts and live bidding will be developed according to the team roadmap.</p><a href="https://github.com/Giabao2110/BIDHUB">View project repository</a></section></main>;
-}
-createRoot(document.getElementById('root')!).render(<StrictMode><App/></StrictMode>);
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RouterProvider } from "react-router-dom";
+import { router } from "./app/router";
+import "@fontsource/be-vietnam-pro/400.css";
+import "@fontsource/be-vietnam-pro/600.css";
+import "@fontsource/be-vietnam-pro/700.css";
+import "@fontsource/be-vietnam-pro/800.css";
+import "@fontsource/noto-serif/400-italic.css";
+import "./styles.css";
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
+});
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  </StrictMode>,
+);

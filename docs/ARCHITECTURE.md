@@ -35,7 +35,7 @@ flowchart LR
   API --> Logs[Structured logs + health endpoints]
 ```
 
-Đây là kiến trúc đích; bộ khung hiện tại chạy Vite và API riêng ở local. Không có Nginx/HTTPS production đã cấu hình sẵn.
+Local development chạy Vite và API riêng. Repo đã có Docker/Nginx reverse proxy, cấu hình full stack và mẫu TLS; chưa có bằng chứng triển khai HTTPS trên host thực tế.
 
 ## 4. Cấu trúc thư mục và trách nhiệm
 
@@ -65,11 +65,11 @@ BIDHUB/
           auctions/          # Đạt (planned)
           bids/              # Đạt: policy exists; HTTP/transaction planned
           admin/             # Đạt (planned)
-        realtime/            # Bảo: rooms, events (planned)
-        jobs/                # Bảo + Đạt: auction lifecycle (planned)
+        realtime/            # Bảo: validated rooms, publisher, after-commit helper implemented
+        jobs/                # lifecycle implemented; bid/cancel integration pending
       migrations/            # Đạt; Bảo review schema/locks
   packages/contracts/        # Bảo maintains; Đạt/Phú co-review
-  infra/                     # Bảo: local DB exists; production planned
+  infra/                     # Docker/Nginx, TLS template, backup/restore scripts; host deployment pending
   docs/                      # all three; lead integrates
   .github/                   # Bảo: CI + PR template
 ```

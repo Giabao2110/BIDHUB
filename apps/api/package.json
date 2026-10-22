@@ -1,6 +1,30 @@
 {
-  "name": "@bidhub/api", "version": "0.1.0", "private": true, "type": "module",
-  "scripts": {"dev":"tsx watch --env-file=../../.env src/server.ts","build":"tsc","typecheck":"tsc --noEmit","start":"node --env-file=../../.env dist/server.js","test":"tsx --test src/modules/bids/bid-policy.test.ts","db:migrate":"tsx --env-file=../../.env src/database/migrate.ts"},
-  "dependencies": {"express":"^5.1.0","cors":"^2.8.5","helmet":"^8.1.0","pg":"^8.16.0","socket.io":"^4.8.0"},
-  "devDependencies": {"@types/express":"^5.0.0","@types/cors":"^2.8.0","@types/node":"^24.0.0","@types/pg":"^8.15.0","tsx":"^4.20.0","typescript":"^5.9.0"}
+  "name": "@bidhub/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=../../.env src/server.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node --env-file=../../.env dist/server.js",
+    "test": "tsx --test src/modules/bids/bid-policy.test.ts src/realtime/after-commit.test.ts src/realtime/auction-rooms.test.ts src/jobs/auction-lifecycle.test.ts src/jobs/scheduler.test.ts",
+    "db:migrate": "tsx --env-file=../../.env src/database/migrate.ts"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "pg": "^8.16.0",
+    "socket.io": "^4.8.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.0",
+    "socket.io-client": "^4.8.4",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
 }

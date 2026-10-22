@@ -5,6 +5,17 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: bidhub_test
+          POSTGRES_USER: bidhub
+          POSTGRES_PASSWORD: ci_test_only
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U bidhub -d bidhub_test" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://bidhub:ci_test_only@localhost:5432/bidhub_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -15,3 +26,42 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Check frontend formatting
+        run: npm run format:check --workspace @bidhub/web
+      - name: Install Chromium for preview tests
+        run: npx playwright install --with-deps chromium
+      - name: Run preview browser tests on four viewport sizes
+        run: npm run test:preview --workspace @bidhub/web
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-test-results
+          path: apps/web/test-results/
+          if-no-files-found: ignore
+      - run: docker build -f infra/Dockerfile.api -t bidhub-api:ci .
+      - run: docker build -f infra/Dockerfile.web -t bidhub-web:ci .
+      - name: Start full application and apply migrations twice
+        env:
+          DB_PASSWORD: ci_compose_only
+          DATABASE_URL: postgres://bidhub:ci_compose_only@db:5432/bidhub
+          WEB_ORIGIN: http://localhost:8080
+        run: |
+          docker compose -f infra/compose.app.yaml up -d --build --wait db api
+          docker compose -f infra/compose.app.yaml exec -T api node apps/api/dist/database/migrate.js
+          docker compose -f infra/compose.app.yaml exec -T api node apps/api/dist/database/migrate.js
+          docker compose -f infra/compose.app.yaml up -d --build --wait web
+          node scripts/smoke-compose.mjs
+          docker compose -f infra/compose.app.yaml exec -T db psql -U bidhub -d bidhub -v ON_ERROR_STOP=1 < infra/ci-recovery-fixture.sql
+          docker compose -f infra/compose.app.yaml exec -T db psql -U bidhub -d bidhub -v ON_ERROR_STOP=1 -At < infra/restore-fingerprint.sql > /tmp/bidhub-expected.txt
+          sh infra/backup.sh /tmp/bidhub-ci.dump
+          sh infra/restore-test.sh /tmp/bidhub-ci.dump /tmp/bidhub-expected.txt
+      - name: Container logs and cleanup
+        if: always()
+        env:
+          DB_PASSWORD: ci_compose_only
+          DATABASE_URL: postgres://bidhub:ci_compose_only@db:5432/bidhub
+          WEB_ORIGIN: http://localhost:8080
+        run: |
+          docker compose -f infra/compose.app.yaml logs --tail 80
+          docker compose -f infra/compose.app.yaml down -v
