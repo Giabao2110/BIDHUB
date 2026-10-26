@@ -90,5 +90,50 @@ npm run test:db --workspace @bidhub/api
 
 CI configuration is unchanged in this slice. Run both suites locally before
 handoff; a passing default suite alone does not establish migration coverage.
-Seed data and password helpers are the next slice. Auth, bid/cancel races,
-visibility decisions and frontend integration remain separate work.
+Auth endpoints, bid/cancel races, visibility decisions and frontend integration
+remain separate work.
+
+## Development demo seed
+
+After migration, set `SEED_DEMO_PASSWORD` privately in your local environment
+(16–1024 characters, no committed default) and run:
+
+```sh
+npm run db:seed --workspace @bidhub/api
+```
+
+For a compiled checkout or a dedicated development API container, supply
+`DATABASE_URL` and `SEED_DEMO_PASSWORD` through its environment, then run:
+
+```sh
+node apps/api/dist/database/seed.js
+```
+
+The seed refuses `NODE_ENV=production`. Use `NODE_ENV=development` only for
+the dedicated development container; do not change the production service's
+environment to run a seed. Do not target a shared or production database.
+It creates three accounts:
+`admin@demo.bidhub.invalid` (ADMIN), `seller@demo.bidhub.invalid` and
+`bidder@demo.bidhub.invalid` (MEMBER). Each initial password is the supplied
+value, stored with an independent Argon2id salt using the shared password
+helper. See [node-argon2](https://github.com/ranisalt/node-argon2) for the native
+dependency and default parameters. No HTTP login endpoint is added here.
+
+It inserts one demo category and six auctions covering all five statuses plus
+an unsold ENDED example. ACTIVE and SCHEDULED use times relative to the first
+seed run; the two bids and two results match their auctions/prices/users.
+IDs use the reserved `d3000000-0000-4000-8000-*` demo namespace.
+
+The entire seed is transactional and serialized with concurrent seed runs.
+Rerunning preserves passwords, disabled accounts, deadlines, versions and bid
+history, including legitimate changes made after seeding. It does not revive
+expired demos or reset passwords when the supplied value changes. Start with
+a fresh disposable demo database when you need fresh countdowns. Conflicting
+reserved identities or unique email/slug collisions fail and roll back instead
+of overwriting existing records. These are sample data, not real users/items.
+
+`test:db` also checks concurrent/repeated seeding, hashes, time/reference
+consistency, winner/no-bid results, preservation after subsequent changes,
+collision rollback and production/password guards. `npm test` includes the
+password hash/verify test. Adding the native dependency changes the workspace
+manifest/lockfile; verify the existing Alpine API image before handoff.

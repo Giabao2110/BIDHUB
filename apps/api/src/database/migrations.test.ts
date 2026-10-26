@@ -84,10 +84,12 @@ test('failed migration rolls back DDL and ledger, releases lock and can be retri
   await assert.rejects(runMigrations(db, folder.url), { code: '42P01' });
   // A different connection must acquire it: reusing the same pooled session
   // would hide a leaked lock because advisory locks are reentrant per session.
-  const probe = new pg.Client({ connectionString, connectionTimeoutMillis: 3000 });
+  const probe = new pg.Client({ connectionString, connectionTimeoutMillis: 3000, statement_timeout: 3000 });
   await probe.connect();
   try {
-    assert.equal((await probe.query('SELECT pg_try_advisory_lock(481231) AS acquired')).rows[0].acquired, true);
+    // Other suites may legitimately migrate their own schemas at the same time.
+    // Wait for them, but time out if the failed runner leaked its session lock.
+    await probe.query('SELECT pg_advisory_lock(481231)');
     await probe.query('SELECT pg_advisory_unlock(481231)');
   } finally { await probe.end(); }
   assert.equal((await db.query("SELECT to_regclass('rollback_probe') AS relation")).rows[0].relation, null);
