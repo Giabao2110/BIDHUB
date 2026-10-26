@@ -14,20 +14,11 @@ export interface PreviewAuction {
   };
 }
 const anchor = Date.now();
-export const previewCategories = ["Máy ảnh", "Âm thanh", "Đồng hồ", "Nội thất"];
+export const previewCategories = ["Cameras", "Audio", "Watches", "Interiors"];
 const rows = [
+  ["Fujifilm X100V camera", "ACTIVE", "18500000", "500000", 0, "camera", 12, 4],
   [
-    "Máy ảnh Fujifilm X100V",
-    "ACTIVE",
-    "18500000",
-    "500000",
-    0,
-    "camera",
-    12,
-    4,
-  ],
-  [
-    "Tai nghe Beoplay H95",
+    "Beoplay H95 headphones",
     "ACTIVE",
     "8200000",
     "200000",
@@ -36,21 +27,12 @@ const rows = [
     8,
     7,
   ],
-  ["Đồng hồ Seiko Presage", "ACTIVE", "4500000", "100000", 2, "watch", 0, 2],
-  ["Ghế thư giãn gỗ sồi", "SCHEDULED", "2400000", "100000", 3, "chair", 0, 48],
-  ["Mâm đĩa than vintage", "ENDED", "3600000", "100000", 1, "turntable", 6, -2],
+  ["Seiko Presage watch", "ACTIVE", "4500000", "100000", 2, "watch", 0, 2],
+  ["Oak lounge chair", "SCHEDULED", "2400000", "100000", 3, "chair", 0, 48],
+  ["Vintage turntable", "ENDED", "3600000", "100000", 1, "turntable", 6, -2],
+  ["Classic film camera", "CANCELLED", "1200000", "100000", 0, "camera", 2, -1],
   [
-    "Máy ảnh film cổ điển",
-    "CANCELLED",
-    "1200000",
-    "100000",
-    0,
-    "camera",
-    2,
-    -1,
-  ],
-  [
-    "Tai nghe studio · bản nháp",
+    "Studio headphones · draft",
     "DRAFT",
     "1500000",
     "100000",
@@ -76,11 +58,11 @@ export const auctionFixtures: PreviewAuction[] = rows.map(
       version: bidCount,
     },
     description:
-      "Sản phẩm minh họa cho giao diện BIDHUB. Thông tin tình trạng, phụ kiện và điều kiện giao nhận sẽ được người bán cung cấp khi tích hợp dữ liệu thật. Hình vẽ chỉ dùng để phác thảo bố cục.",
+      "A sample listing for the BIDHUB preview. Sellers will provide condition, accessories, and delivery details once live data is connected. The illustration is a layout placeholder.",
     imageUrl: null,
     seller: {
       id: "20000000-0000-4000-8000-000000000001",
-      displayName: "Người bán mẫu",
+      displayName: "Sample seller",
     },
     category: {
       id: `30000000-0000-4000-8000-${String(categoryIndex + 1).padStart(12, "0")}`,
@@ -114,7 +96,7 @@ export async function readPreviewAuctions(
     else signal.addEventListener("abort", abort, { once: true });
   });
   if (fail)
-    throw new Error("Lỗi kết nối mô phỏng. Dữ liệu thật chưa được kết nối.");
+    throw new Error("Simulated connection error. Live data is not connected.");
   const receivedAt = Date.now();
   return auctionFixtures.map((item) => ({
     ...item,

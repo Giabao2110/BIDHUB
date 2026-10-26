@@ -5,60 +5,60 @@ const firstId = "10000000-0000-4000-8000-000000000001";
 test("discovery filters, empty recovery and detail navigation", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/preview/");
   await expect(page).toHaveURL(/\/auctions$/);
   await expect(page.locator(".auction-card")).toHaveCount(6);
   await page.getByRole("searchbox").fill("Seiko");
   await expect(page.locator(".auction-card")).toHaveCount(1);
   await page.reload();
   await expect(page.getByRole("searchbox")).toHaveValue("Seiko");
-  await page.getByRole("searchbox").fill("không tồn tại");
+  await page.getByRole("searchbox").fill("no results");
   await expect(
-    page.getByRole("heading", { name: "Chưa tìm thấy phiên phù hợp" }),
+    page.getByRole("heading", { name: "No matching auctions" }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Xóa bộ lọc", exact: true })
+    .getByRole("button", { name: "Clear filters", exact: true })
     .last()
     .click();
   await expect(page).toHaveURL(/\/auctions$/);
   await expect(page.getByRole("searchbox")).toHaveValue("");
   await expect(page.locator(".auction-card")).toHaveCount(6);
-  await page.getByLabel("Danh mục", { exact: true }).selectOption("Âm thanh");
+  await page.getByLabel("Category", { exact: true }).selectOption("Audio");
   await expect(page.locator(".auction-card")).toHaveCount(2);
   await page
-    .getByLabel("Trạng thái phiên", { exact: true })
+    .getByLabel("Auction status", { exact: true })
     .selectOption("ENDED");
   await expect(page.locator(".auction-card")).toHaveCount(1);
   await page
-    .getByRole("link", { name: "Mâm đĩa than vintage", exact: true })
+    .getByRole("link", { name: "Vintage turntable", exact: true })
     .click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Mâm đĩa than vintage",
+    "Vintage turntable",
   );
   await expect(
-    page.getByRole("button", { name: "Chờ tích hợp trả giá" }),
+    page.getByRole("button", { name: "Bidding coming soon" }),
   ).toBeDisabled();
   await expect(
-    page.getByText("Kết quả người thắng sẽ được xác nhận bằng API kết quả."),
+    page.getByText("The winner will be confirmed by the server."),
   ).toBeVisible();
 });
 
 test("loading, error and empty states can be reviewed and recovered", async ({
   page,
 }) => {
-  await page.goto("/auctions?state=loading");
+  await page.goto("/preview/auctions?state=loading");
   await expect(
-    page.getByRole("heading", { name: "Đang tải phiên đấu giá" }),
+    page.getByRole("heading", { name: "Loading auctions" }),
   ).toBeVisible();
-  await page.getByLabel("Trạng thái giao diện mẫu").selectOption("error");
-  await expect(page.getByRole("alert")).toContainText("Chưa thể tải dữ liệu");
-  await page.getByRole("button", { name: "Thử lại" }).click();
+  await page.getByLabel("Preview state").selectOption("error");
+  await expect(page.getByRole("alert")).toContainText("Unable to load data");
+  await page.getByRole("button", { name: "Try again" }).click();
   await expect(page.locator(".auction-card")).toHaveCount(6);
-  await page.getByLabel("Trạng thái giao diện mẫu").selectOption("empty");
+  await page.getByLabel("Preview state").selectOption("empty");
   await expect(
-    page.getByRole("heading", { name: "Chưa tìm thấy phiên phù hợp" }),
+    page.getByRole("heading", { name: "No matching auctions" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Xóa bộ lọc" }).click();
+  await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(page.locator(".auction-card")).toHaveCount(6);
 });
 
@@ -69,17 +69,17 @@ test("login only validates locally and sends no authentication request", async (
   page.on("request", (request) => {
     if (request.url().includes("/api/")) requests.push(request.url());
   });
-  await page.goto("/login");
-  await page.getByRole("button", { name: "Kiểm tra biểu mẫu" }).click();
+  await page.goto("/preview/login");
+  await page.getByRole("button", { name: "Validate form" }).click();
   expect(
     await page
       .locator("form")
       .evaluate((form: HTMLFormElement) => form.checkValidity()),
   ).toBe(false);
   await page.getByLabel("Email", { exact: true }).fill("preview@example.com");
-  await page.getByLabel("Mật khẩu", { exact: true }).fill("preview-only");
-  await page.getByRole("button", { name: "Kiểm tra biểu mẫu" }).click();
-  await expect(page.getByRole("status")).toContainText("Chưa gửi thông tin");
+  await page.getByLabel("Password", { exact: true }).fill("preview-only");
+  await page.getByRole("button", { name: "Validate form" }).click();
+  await expect(page.getByRole("status")).toContainText("Nothing was sent");
   expect(requests).toEqual([]);
 });
 
@@ -91,35 +91,35 @@ test("seller form rejects invalid amounts and dates without creating an auction"
     if (request.method() !== "GET" && request.url().includes("/api/"))
       writes.push(request.url());
   });
-  await page.goto("/auctions/new");
-  await page.getByLabel("Tên sản phẩm").fill("Máy ảnh mẫu");
+  await page.goto("/preview/auctions/new");
+  await page.getByLabel("Item title").fill("Sample camera");
   await page
-    .getByLabel("Danh mục", { exact: true })
-    .selectOption({ label: "Máy ảnh" });
+    .getByLabel("Category", { exact: true })
+    .selectOption({ label: "Cameras" });
   await page
-    .getByLabel("Mô tả", { exact: true })
-    .fill("Mô tả minh họa, không đăng bán thật.");
-  await page.getByLabel("Giá khởi điểm (VND)").fill("9223372036854775808");
-  await page.getByLabel("Bước giá (VND)").fill("100000");
+    .getByLabel("Description", { exact: true })
+    .fill("Sample description. This is not a real listing.");
+  await page.getByLabel("Starting bid (VND)").fill("9223372036854775808");
+  await page.getByLabel("Bid increment (VND)").fill("100000");
   const localDate = (offset: number) => {
     const date = new Date(Date.now() + offset * 86_400_000);
     return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
       .toISOString()
       .slice(0, 16);
   };
-  await page.getByLabel("Bắt đầu", { exact: true }).fill(localDate(2));
-  await page.getByLabel("Kết thúc", { exact: true }).fill(localDate(1));
-  await page.getByRole("button", { name: "Kiểm tra bản nháp" }).click();
+  await page.getByLabel("Starts at", { exact: true }).fill(localDate(2));
+  await page.getByLabel("Ends at", { exact: true }).fill(localDate(1));
+  await page.getByRole("button", { name: "Validate draft" }).click();
   await expect(page.getByRole("alert")).toContainText("BIGINT");
-  await page.getByLabel("Giá khởi điểm (VND)").fill("1000000");
-  await page.getByRole("button", { name: "Kiểm tra bản nháp" }).click();
+  await page.getByLabel("Starting bid (VND)").fill("1000000");
+  await page.getByRole("button", { name: "Validate draft" }).click();
   await expect(page.getByRole("alert")).toContainText(
-    "kết thúc sau thời gian bắt đầu",
+    "end time after the start",
   );
-  await page.getByLabel("Kết thúc", { exact: true }).fill(localDate(3));
-  await page.getByRole("button", { name: "Kiểm tra bản nháp" }).click();
+  await page.getByLabel("Ends at", { exact: true }).fill(localDate(3));
+  await page.getByRole("button", { name: "Validate draft" }).click();
   await expect(page.getByRole("status")).toContainText(
-    "Chưa tạo hoặc lưu phiên",
+    "No auction has been created or saved",
   );
   expect(writes).toEqual([]);
 });
@@ -127,22 +127,20 @@ test("seller form rejects invalid amounts and dates without creating an auction"
 test("dashboard navigation and unavailable pages stay explicit", async ({
   page,
 }) => {
-  await page.goto("/dashboard");
+  await page.goto("/preview/dashboard");
   await expect(
-    page.getByText("Bố cục tài khoản mẫu, chưa có người dùng đăng nhập."),
+    page.getByText("Sample account layout. No user is signed in."),
   ).toBeVisible();
   await expect(page.locator(".dashboard-row")).toHaveCount(5);
-  await page
-    .getByRole("link", { name: "Lượt trả giá của tôi", exact: true })
-    .click();
+  await page.getByRole("link", { name: "My bids", exact: true }).click();
   await expect(page.locator(".dashboard-row")).toHaveCount(4);
-  await page.goto("/auctions/10000000-0000-4000-8000-000000000007");
+  await page.goto("/preview/auctions/10000000-0000-4000-8000-000000000007");
   await expect(
-    page.getByRole("heading", { name: "Không tìm thấy phiên đấu giá" }),
+    page.getByRole("heading", { name: "Auction not found" }),
   ).toBeVisible();
-  await page.goto("/missing-page");
+  await page.goto("/preview/missing-page");
   await expect(
-    page.getByRole("heading", { name: "Trang này chưa có ở BIDHUB" }),
+    page.getByRole("heading", { name: "This page is not on BIDHUB" }),
   ).toBeVisible();
 });
 
@@ -155,11 +153,11 @@ test("five wireframes fit the viewport and render without browser errors", async
     if (message.type() === "error") errors.push(message.text());
   });
   const routes = [
-    ["/auctions", "list"],
-    [`/auctions/${firstId}`, "detail"],
-    ["/login", "login"],
-    ["/auctions/new", "create"],
-    ["/dashboard", "dashboard"],
+    ["/preview/auctions", "list"],
+    [`/preview/auctions/${firstId}`, "detail"],
+    ["/preview/login", "login"],
+    ["/preview/auctions/new", "create"],
+    ["/preview/dashboard", "dashboard"],
   ];
   for (const [route, name] of routes) {
     await page.goto(route!);
@@ -181,10 +179,10 @@ test("five wireframes fit the viewport and render without browser errors", async
 });
 
 test("keyboard access reaches content and shows focus", async ({ page }) => {
-  await page.goto("/auctions");
+  await page.goto("/preview/auctions");
   await page.keyboard.press("Tab");
   await expect(
-    page.getByRole("link", { name: "Đến nội dung chính" }),
+    page.getByRole("link", { name: "Skip to main content" }),
   ).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator("main")).toBeFocused();
