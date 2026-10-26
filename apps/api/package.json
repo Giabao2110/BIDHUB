@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "start": "node --env-file=../../.env dist/server.js",
     "test": "tsx --test src/modules/bids/bid-policy.test.ts src/realtime/after-commit.test.ts src/realtime/auction-rooms.test.ts src/jobs/auction-lifecycle.test.ts src/jobs/scheduler.test.ts",
-    "db:migrate": "tsx --env-file=../../.env src/database/migrate.ts"
+    "db:migrate": "tsx --env-file=../../.env src/database/migrate.ts",
+    "test:db": "node --import tsx --test src/database/migrations.test.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",
