@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { env } from './config/env.js';
 import { pool } from './database/pool.js';
 import { log } from './observability/logger.js';
+import { categoriesRouter } from './modules/categories/routes.js';
 
 export const app = express();
 app.disable('x-powered-by');
@@ -28,6 +29,7 @@ app.get('/api/v1/health/ready', async (_req, res) => {
   try { await pool.query('SELECT 1'); res.json({ status: 'ready' }); }
   catch { res.status(503).json({ status: 'not_ready' }); }
 });
+app.use('/api/v1/categories', categoriesRouter(pool));
 app.use((_req, res) => res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found', requestId: res.locals.requestId } }));
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const badJson = err instanceof SyntaxError && 'status' in err && err.status === 400;

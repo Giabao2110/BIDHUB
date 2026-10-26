@@ -6,6 +6,12 @@ Real-Time Auction Platform — Web Application Development project.
 
 Development foundation with a **week-1 frontend prototype, not a completed auction application**. Implemented: five preview screens (discovery, detail, login, create, dashboard), responsive layout/router, labelled fixtures and UI states, Express liveness/readiness endpoints, validated Socket.IO rooms, after-commit publishing helper, auction lifecycle scheduler, initial SQL migration, bid policy with unit tests, npm workspaces, CI and Docker/Nginx configuration. Real authentication, auction CRUD, transaction-based bidding, frontend realtime integration and actual production deployment remain unfinished.
 
+Public categories are available from PostgreSQL at `GET /api/v1/categories`.
+Run `npm run test:categories-db --workspace @bidhub/api` with a dedicated
+`TEST_DATABASE_URL` to verify the real HTTP endpoint, stable ordering, empty
+results and sanitized database errors. This command is separate from `npm test`
+and fails explicitly if its test database is not configured.
+
 Frontend-only preview: `npm ci`, then `npm run dev:web`. This preview does not require a running API/database. Open `/auctions`, `/login`, `/auctions/new` or `/dashboard`; auction cards link to detail pages. All preview data is labelled as sample data; forms do not authenticate users or save auctions.
 
 ## Team
