@@ -52,4 +52,17 @@ Transport `/socket.io`, cùng origin với web qua Nginx; không thay thế HTTP
 
 ## Gate contract tuần 1
 
-Chốt payload success/error; fixtures ít nhất một phiên DRAFT/ACTIVE/ENDED/CANCELLED; thống nhất ID/type/time/money; dùng fixtures cho frontend trong tuần 2 nhưng gắn nhãn mock. Tuần 3 bỏ mocks trên những route đã có backend thật. API docs không ghi tính năng planned là đã chạy.
+Chốt payload success/error; fixtures đủ DRAFT/SCHEDULED/ACTIVE/ENDED/CANCELLED; thống nhất ID/type/time/money; dùng fixtures cho frontend trong tuần 2 nhưng gắn nhãn mock. Tuần 3 bỏ mocks trên những route đã có backend thật. API docs không ghi tính năng planned là đã chạy.
+
+## BH-02-A — bộ ví dụ để review
+
+[ERD/rules/visibility và quyết định mở](DB-DOMAIN.md),
+[fixtures mock typed](fixtures/auctions.ts), [cách dùng và request mẫu](fixtures/README.md).
+Snapshot fixtures được kiểm tra với shared types hiện hành; không thêm field
+vào `AuctionSnapshot`. `openingPriceVnd` và `startsAt` ở metadata scenario để
+đối chiếu rules, không tự thêm chúng vào response detail.
+
+`image_url` nullable trong SQL nên fixture detail dùng `imageUrl: null`.
+Visibility CANCELLED, quyền ADMIN đọc draft, payload list/sort, CSRF bootstrap
+và response result CANCELLED còn cần review ở các gate ghi trong DB-DOMAIN.
+Ví dụ không chốt các quyết định đó hoặc chứng minh route đã hoạt động.
