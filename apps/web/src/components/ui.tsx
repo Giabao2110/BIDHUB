@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { PreviewLink as Link } from "../app/preview-link";
 import type { AuctionSnapshot, AuctionStatus } from "@bidhub/contracts";
 import type { PreviewAuction } from "../mocks/auctions";
 import { formatMoney } from "../lib/format";
 const labels: Record<AuctionStatus, string> = {
-  ACTIVE: "Đang diễn ra",
-  SCHEDULED: "Sắp diễn ra",
-  ENDED: "Đã kết thúc",
-  CANCELLED: "Đã hủy",
-  DRAFT: "Bản nháp",
+  ACTIVE: "Live",
+  SCHEDULED: "Upcoming",
+  ENDED: "Ended",
+  CANCELLED: "Cancelled",
+  DRAFT: "Draft",
 };
 export function StatusBadge({ status }: { status: AuctionStatus }) {
   return (
@@ -25,14 +25,14 @@ export function StatePanel({
   onRetry?: () => void;
 }) {
   const content = {
-    loading: ["Đang tải phiên đấu giá", "Vui lòng chờ trong giây lát."],
+    loading: ["Loading auctions", "Please wait a moment."],
     error: [
-      "Chưa thể tải dữ liệu",
-      "Đây là trạng thái lỗi mô phỏng. Bạn có thể thử tải lại.",
+      "Unable to load data",
+      "This is a simulated connection error. You can try again.",
     ],
     empty: [
-      "Chưa tìm thấy phiên phù hợp",
-      "Thử từ khóa khác hoặc bỏ bớt bộ lọc để tiếp tục khám phá.",
+      "No matching auctions",
+      "Try a different search or clear your filters to keep exploring.",
     ],
   }[kind];
   return (
@@ -48,7 +48,7 @@ export function StatePanel({
       <p>{content[1]}</p>
       {onRetry && (
         <button className="button secondary" onClick={onRetry}>
-          {kind === "error" ? "Thử lại" : "Xóa bộ lọc"}
+          {kind === "error" ? "Try again" : "Clear filters"}
         </button>
       )}
     </section>
@@ -75,7 +75,7 @@ export function Countdown({
         1000,
     ),
   );
-  if (!seconds) return <span>Chờ server xác nhận kết quả</span>;
+  if (!seconds) return <span>Awaiting the official result</span>;
   const h = Math.floor(seconds / 3600),
     m = Math.floor((seconds % 3600) / 60),
     s = seconds % 60;
@@ -95,7 +95,7 @@ export function ProductArt({
       <svg
         viewBox="0 0 320 220"
         role="img"
-        aria-label="Hình vẽ minh họa sản phẩm mẫu"
+        aria-label="Illustration of a sample item"
       >
         <ellipse
           cx="160"
@@ -227,7 +227,7 @@ export function ProductArt({
           </g>
         )}
       </svg>
-      <span className="art-caption">Hình minh họa</span>
+      <span className="art-caption">Illustration</span>
     </div>
   );
 }
@@ -237,7 +237,7 @@ export function AuctionCard({ item }: { item: PreviewAuction }) {
       <Link
         className="card-image"
         to={`/auctions/${item.auction.id}`}
-        aria-label={`Xem ${item.auction.title}`}
+        aria-label={`View ${item.auction.title}`}
       >
         <ProductArt kind={item.preview.artwork} />
         <StatusBadge status={item.auction.status} />
@@ -250,15 +250,15 @@ export function AuctionCard({ item }: { item: PreviewAuction }) {
         <div className="card-price">
           <div>
             <span className="field-caption">
-              {item.preview.bidCount ? "Giá hiện tại" : "Giá khởi điểm"}
+              {item.preview.bidCount ? "Current bid" : "Starting bid"}
             </span>
             <strong>{formatMoney(item.auction.currentPriceVnd)}</strong>
           </div>
-          <span className="muted">{item.preview.bidCount} lượt mẫu</span>
+          <span className="muted">{item.preview.bidCount} sample bids</span>
         </div>
         <div className="card-bottom">
           <span>
-            {item.auction.status === "ACTIVE" ? "Còn lại" : "Trạng thái"}
+            {item.auction.status === "ACTIVE" ? "Time left" : "Status"}
           </span>
           <Countdown
             auction={item.auction}
