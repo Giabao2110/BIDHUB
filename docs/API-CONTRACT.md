@@ -4,7 +4,9 @@
 
 Prefix `/api/v1`; JSON; ID UUID; tiền VND chuỗi integer (`"150000"`), không float; ngày ISO 8601 UTC; trang mặc định 1, pageSize 20, tối đa 50. Response lỗi `{ "error": { "code": "BID_TOO_LOW", "message": "...", "requestId": "..." } }`. Frontend xử lý code, không phụ thuộc chuỗi message.
 
-API dưới đây là backlog, ngoại trừ hai health endpoint đã có. Tuần 1 Đạt và Phú chốt payload từng route, Bảo cập nhật types tại packages/contracts. Thay đổi contract phải có PR và reviewer từ phía dùng API.
+API dưới đây là backlog, ngoại trừ hai health endpoint và GET `/categories`
+đã có. Đạt và Phú chốt payload từng route, Bảo cập nhật types tại
+packages/contracts. Thay đổi contract phải có PR và reviewer từ phía dùng API.
 
 ## Auth — Đạt implement, Phú tích hợp
 
@@ -16,7 +18,9 @@ API dưới đây là backlog, ngoại trừ hai health endpoint đã có. Tuầ
 
 ## Auctions — Đạt implement, Phú UI
 
-- GET `/categories`: `{items:[{id,slug,name}]}`.
+- GET `/categories`: `{items:[{id,slug,name}]}`. Implemented public read endpoint;
+  thứ tự ổn định theo slug rồi ID, database chưa có danh mục trả `{items:[]}`.
+  Query parameters không hỗ trợ được bỏ qua; chưa có category write endpoint.
 - GET `/auctions?query=&categoryId=&status=ACTIVE&page=1&pageSize=20`: `{items,total,page,pageSize}`; whitelist sort, không ghép input thành SQL.
 - GET `/auctions/:id`: `{auction: AuctionSnapshot, description, imageUrl, seller:{id,displayName}, category:{id,name}}`. Không trả email seller.
 - POST `/auctions`: auth; `{title,description,categoryId,imageUrl,openingPriceVnd,minimumIncrementVnd,startsAt,endsAt}`; 201 `{auction}` trạng thái DRAFT.
