@@ -11,7 +11,8 @@
     "test": "tsx --test src/modules/bids/bid-policy.test.ts src/modules/auth/password.test.ts src/realtime/after-commit.test.ts src/realtime/auction-rooms.test.ts src/jobs/auction-lifecycle.test.ts src/jobs/scheduler.test.ts",
     "db:migrate": "tsx --env-file=../../.env src/database/migrate.ts",
     "test:db": "node --import tsx --test src/database/migrations.test.ts src/database/demo-seed.test.ts",
-    "db:seed": "tsx --env-file=../../.env src/database/seed.ts"
+    "db:seed": "tsx --env-file=../../.env src/database/seed.ts",
+    "test:auth-db": "node --import tsx --test src/modules/auth/sessions.test.ts"
   },
   "dependencies": {
     "argon2": "^0.45.1",
