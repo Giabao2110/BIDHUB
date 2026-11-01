@@ -40,6 +40,7 @@ Frontend checks: `npm run format:check --workspace @bidhub/web` and `npm run tes
 ## Working documents
 
 - [Architecture, database and code ownership](docs/ARCHITECTURE.md)
+- [Database migrations and PostgreSQL integration tests](docs/DATABASE.md)
 - [API and realtime contract](docs/API-CONTRACT.md)
 - [Detailed assignments and 8-week timeline](docs/TEAM-PLAN.md)
 - [Operations and demo acceptance](docs/RUNBOOK.md)
