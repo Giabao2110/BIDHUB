@@ -51,6 +51,7 @@ Frontend checks: `npm run format:check --workspace @bidhub/web` and `npm run tes
 - [Detailed assignments and 8-week timeline](docs/TEAM-PLAN.md)
 - [Operations and demo acceptance](docs/RUNBOOK.md)
 - [Bảo infrastructure/realtime implementation and deployment](docs/BAO-IMPLEMENTATION.md)
+- [Monitoring dashboard, alerts and backup scheduling/retention](docs/MONITORING-OPERATIONS.md)
 - [Bảo independent infrastructure progress and verification, 21 October](docs/BAO-VERIFICATION-2026-10-21.md)
 
 Infrastructure update: auction room validation/caps, after-commit transaction helper, structured request logs, auction lifecycle scheduler and full-stack Docker/Nginx configuration are implemented. Local Docker builds, Nginx/socket smoke tests and a populated backup/restore exercise passed on 21 October; see the dated verification report for evidence and limits. Bid/cancel services still need integration with the same row-lock discipline. Real-host TLS deployment remains unfinished.

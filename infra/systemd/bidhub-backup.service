@@ -1,0 +1,11 @@
+[Unit]
+Description=BIDHUB PostgreSQL daily archive (no automatic deletion)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/bidhub
+EnvironmentFile=/etc/bidhub/operations.env
+UMask=0077
+ExecStart=/bin/sh -c 'exec sh infra/backup.sh /var/backups/bidhub/bidhub-$(date -u +%%Y%%m%%dT%%H%%M%%SZ).dump'

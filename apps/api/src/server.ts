@@ -7,6 +7,7 @@ import { registerAuctionRooms } from './realtime/auction-rooms.js';
 import { createAuctionPublisher } from './realtime/publisher.js';
 import { log } from './observability/logger.js';
 import { processAuctionLifecycle, startAuctionLifecycle } from './jobs/auction-lifecycle.js';
+import { metrics, metricsServer } from './observability/metrics.js';
 const server = createServer(app);
 const io = new Server(server, {
   cors: { origin: env.webOrigin }, maxHttpBufferSize: 4096,
@@ -20,7 +21,10 @@ registerAuctionRooms(io, async id => {
 // Inject the returned publisher into services at composition time; services must
 // import publisher.ts, NOT server.ts (which starts the HTTP server).
 const publishAuctionUpdate = createAuctionPublisher(io);
-const stopLifecycle = startAuctionLifecycle(() => processAuctionLifecycle(pool, publishAuctionUpdate));
+metrics.registerRuntime(() => ({total: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount, sockets: io.engine.clientsCount}));
+const monitoring = metricsServer(metrics.registry);
+monitoring.listen(env.metricsPort, env.host);
+const stopLifecycle = startAuctionLifecycle(() => metrics.runLifecycle(() => processAuctionLifecycle(pool, publishAuctionUpdate)));
 server.listen(env.port, env.host, () => log('server_started', { port: env.port, host: env.host }));
 let stopping = false;
 function stop() {
@@ -28,8 +32,9 @@ function stop() {
   stopping = true;
   const deadline = setTimeout(() => process.exit(1), 10000);
   deadline.unref();
+  monitoring.close();
   io.close(() => {
-    void stopLifecycle().then(() => pool.end()).then(() => { clearTimeout(deadline); log('server_stopped'); });
+    void stopLifecycle().then(() => pool.end()).then(() => { metrics.registry.clear(); clearTimeout(deadline); log('server_stopped'); });
   });
 }
 process.on('SIGINT', stop);
