@@ -4,7 +4,7 @@ Real-Time Auction Platform — Web Application Development project.
 
 ## Current status
 
-Development foundation with a **week-1 frontend prototype, not a completed auction application**. Implemented: five preview screens (discovery, detail, login, create, dashboard), responsive layout/router, labelled fixtures and UI states, Express liveness/readiness endpoints, validated Socket.IO rooms, after-commit publishing helper, auction lifecycle scheduler, initial SQL migration, bid policy with unit tests, npm workspaces, CI and Docker/Nginx configuration. Real authentication, auction CRUD, transaction-based bidding, frontend realtime integration and actual production deployment remain unfinished.
+Development foundation with **frontend REST flows and a separate fixture preview, not a completed auction application**. Implemented: frontend account/session/draft/listing flows against the documented API contract, responsive screens, labelled preview fixtures, Express health and public categories endpoints, PostgreSQL migrations/demo seed, Argon2id helpers and internal hashed-session persistence, validated Socket.IO rooms, after-commit helper, lifecycle scheduler, CI and Docker/Nginx configuration. Authentication/CSRF HTTP routes and auction CRUD/list/detail HTTP routes are still missing: the frontend flows are verified with intercepted API fixtures, not end-to-end authentication or auction persistence. Transactional bidding, frontend realtime integration and production deployment remain unfinished.
 
 Public categories are available from PostgreSQL at `GET /api/v1/categories`.
 Run `npm run test:categories-db --workspace @bidhub/api` with a dedicated
@@ -12,7 +12,7 @@ Run `npm run test:categories-db --workspace @bidhub/api` with a dedicated
 results and sanitized database errors. This command is separate from `npm test`
 and fails explicitly if its test database is not configured.
 
-Frontend-only preview: `npm ci`, then `npm run dev:web`. This preview does not require a running API/database. Open `/auctions`, `/login`, `/auctions/new` or `/dashboard`; auction cards link to detail pages. All preview data is labelled as sample data; forms do not authenticate users or save auctions.
+Frontend-only preview: `npm ci`, then `npm run dev:web`. Open `/preview/auctions`, `/preview/login`, `/preview/auctions/new` or `/preview/dashboard` without an API/database. All preview data is labelled as sample data; preview forms do not authenticate users or save auctions. Normal `/auctions`, `/login`, `/register` and `/dashboard` routes call real APIs and show errors while required backend routes remain unavailable; there is no silent mock fallback.
 
 ## Team
 

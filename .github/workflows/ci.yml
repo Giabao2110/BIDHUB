@@ -25,6 +25,12 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - name: Verify team database, session, category and contract contributions
+        run: |
+          npm run test:db --workspace @bidhub/api
+          npm run test:auth-db --workspace @bidhub/api
+          npm run test:categories-db --workspace @bidhub/api
+          node --import tsx --test docs/fixtures/auctions.test.ts
       - run: npm run build
       - name: Check frontend formatting
         run: npm run format:check --workspace @bidhub/web
