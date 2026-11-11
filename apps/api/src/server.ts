@@ -8,6 +8,7 @@ import { createAuctionPublisher } from './realtime/publisher.js';
 import { log } from './observability/logger.js';
 import { processAuctionLifecycle, startAuctionLifecycle } from './jobs/auction-lifecycle.js';
 import { metrics, metricsServer } from './observability/metrics.js';
+import { publicAuctionExists } from './modules/auctions/read.js';
 const server = createServer(app);
 const webHost = new URL(env.webOrigin).host;
 const io = new Server(server, {
@@ -23,10 +24,7 @@ const io = new Server(server, {
     callback(null, allowed);
   },
 });
-registerAuctionRooms(io, async id => {
-  const result = await pool.query("SELECT 1 FROM auctions WHERE id=$1 AND status <> 'DRAFT'", [id]);
-  return result.rowCount === 1;
-});
+registerAuctionRooms(io, id => publicAuctionExists(pool, id));
 // Bid/close services call this through withTransaction's afterCommit callback.
 // Inject the returned publisher into services at composition time; services must
 // import publisher.ts, NOT server.ts (which starts the HTTP server).

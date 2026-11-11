@@ -4,7 +4,7 @@ Real-Time Auction Platform — Web Application Development project.
 
 ## Current status
 
-Development foundation with **PostgreSQL-backed auth/CSRF, frontend REST flows and a separate labelled fixture preview**. The API serves health, public categories, registration, login, logout and session lookup. The auction detail client includes Socket.IO updates, REST resync after joining and a 15-second REST fallback, verified with REST fixtures and real room handlers. The project includes migrations/demo seed, the after-commit helper, the lifecycle scheduler, CI and Docker/Nginx configuration. Auction CRUD/list/detail HTTP routes, transactional bid HTTP, end-to-end auction flows and production deployment remain unfinished.
+Development foundation with **PostgreSQL-backed auth/CSRF and auction reads, frontend REST flows and a separate labelled fixture preview**. The API serves public categories and auctions plus the signed-in user's auctions. The auction detail client includes Socket.IO updates, REST resync and a 15-second REST fallback. Auction draft/publish writes, transactional bid HTTP, end-to-end auction flows and production deployment remain unfinished.
 
 Public categories are available from PostgreSQL at `GET /api/v1/categories`.
 Run `npm run test:categories-db --workspace @bidhub/api` with a dedicated

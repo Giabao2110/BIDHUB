@@ -1,6 +1,10 @@
 # Database migrations and tests
 
 Requires Node.js 24, installed workspace dependencies and PostgreSQL 17.
+Migration 003 adds `auctions.was_published` for shared REST/Socket visibility.
+It marks legacy SCHEDULED, ACTIVE and ENDED rows as published. Legacy CANCELLED
+rows remain private because their publication history is unknown.
+
 Migration 001 is immutable. Migration 002 adds explicit non-null validation
 for a winning result's price and rejects negative auction versions. HTTP
 payloads, shared types and auction visibility are unchanged.
