@@ -190,12 +190,14 @@ test("rejected join stays on REST and retries without reloading", async ({
   let restVersion = 1;
   await installRestFixture(page, () => snapshot(restVersion));
   await page.goto(`${origin}${detailPath}`);
+  await expect.poll(() => joins).toBe(1);
   await expect(polling(page)).toBeVisible();
   expect(io.sockets.adapter.rooms.has(room)).toBe(false);
 
   allowRoom = true;
   restVersion = 2;
-  await page.clock.runFor(16_000);
+  // Jump to the retry without advancing time during the new join/ACK exchange.
+  await page.clock.fastForward(16_000);
   await expect(connected(page)).toBeVisible();
   expect(joins).toBe(2);
   await expect(price(page)).toHaveText("200,000 VND");
