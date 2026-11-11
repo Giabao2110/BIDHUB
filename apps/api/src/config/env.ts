@@ -7,5 +7,6 @@ export const env = {
   metricsPort,
   host: process.env.HOST ?? '127.0.0.1',
   webOrigin: process.env.WEB_ORIGIN ?? 'http://localhost:5173',
+  trustWebProxy: process.env.TRUST_WEB_PROXY === '1',
   databaseUrl: process.env.DATABASE_URL,
 };
