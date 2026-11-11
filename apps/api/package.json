@@ -12,7 +12,7 @@
     "db:migrate": "tsx --env-file=../../.env src/database/migrate.ts",
     "test:db": "node --import tsx --test src/database/migrations.test.ts src/database/demo-seed.test.ts",
     "db:seed": "tsx --env-file=../../.env src/database/seed.ts",
-    "test:auth-db": "node --import tsx --test src/modules/auth/sessions.test.ts",
+    "test:auth-db": "node --import tsx --test src/modules/auth/sessions.test.ts src/modules/auth/routes.test.ts",
     "test:categories-db": "node --import tsx --test src/modules/categories/routes.test.ts"
   },
   "dependencies": {

@@ -19,6 +19,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL with URL-encoded password}
       WEB_ORIGIN: ${WEB_ORIGIN:?Set exact web origin}
+      TRUST_WEB_PROXY: "1"
       HOST: 0.0.0.0
     depends_on:
       db: {condition: service_healthy}
