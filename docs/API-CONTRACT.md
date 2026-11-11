@@ -4,17 +4,17 @@
 
 Prefix `/api/v1`; JSON; ID UUID; tiền VND chuỗi integer (`"150000"`), không float; ngày ISO 8601 UTC; trang mặc định 1, pageSize 20, tối đa 50. Response lỗi `{ "error": { "code": "BID_TOO_LOW", "message": "...", "requestId": "..." } }`. Frontend xử lý code, không phụ thuộc chuỗi message.
 
-API dưới đây là backlog, ngoại trừ hai health endpoint và GET `/categories`
-đã có. Đạt và Phú chốt payload từng route, Bảo cập nhật types tại
+Hai health endpoint, auth và GET `/categories` đã có. Các route còn lại trong
+backlog. Đạt và Phú chốt payload từng route, Bảo cập nhật types tại
 packages/contracts. Thay đổi contract phải có PR và reviewer từ phía dùng API.
 
 ## Auth — Đạt implement, Phú tích hợp
 
 - POST `/auth/register`: `{email,password,displayName}`; 201 `{user:{id,email,displayName,role}}`, set session cookie. Email tồn tại 409; input sai 422.
-- POST `/auth/login`: `{email,password}`; 200 `{user}` và cookie; 401 thông báo chung khi sai thông tin; 429 quá nhiều lần.
+- POST `/auth/login`: `{email,password}`; 200 `{user}` và cookie; 401 `INVALID_CREDENTIALS` khi sai thông tin hoặc tài khoản bị vô hiệu; 429 `RATE_LIMITED` kèm `Retry-After`.
 - POST `/auth/logout`: 204; revoke token và clear cookie; lặp lại vẫn an toàn.
 - GET `/auth/me`: 200 `{user}`; 401 chưa login. Không trả password_hash hoặc session token.
-- GET `/auth/csrf`: 200 `{csrfToken}`; frontend gửi `X-CSRF-Token` ở POST/PATCH/DELETE; cơ chế token/session cần Đạt chốt tuần 2.
+- GET `/auth/csrf`: 200 `{csrfToken}` cho cả khách và người đã đăng nhập. Gửi cookie và `X-CSRF-Token` khi ghi. Sau login/register/logout, lấy token mới vì session đã đổi. CSRF hoặc Origin sai trả 403 `INVALID_CSRF`. Xem [AUTH.md](AUTH.md).
 
 ## Auctions — Đạt implement, Phú UI
 
