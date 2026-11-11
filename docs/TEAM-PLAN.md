@@ -8,6 +8,13 @@ Tổng năng lực dự kiến 192–240 giờ công. Không dùng toàn bộ ch
 
 Các gate: 18/10 nền tảng; 01/11 luồng tạo phiên thật; 15/11 đấu giá realtime hoàn chỉnh; 22/11 feature freeze + staging; 29/11 release candidate; 06/12 demo/report. Gate chỉ đạt khi có chứng cứ nghiệm thu, không chỉ vì đã đến ngày.
 
+### Điều phối MVP — cập nhật 11/11/2026
+
+- **Đạt — đường găng:** hoàn thiện HTTP auth/CSRF trước, rồi list/detail/draft/publish. Nghiệm thu với PostgreSQL thật: session revoke, quyền owner, draft không xuất hiện công khai, publish nhìn thấy bằng phiên khác. Tiếp theo là bid transaction, idempotency và admin/result theo BH-11/BH-15.
+- **Phú — chạy song song:** tích hợp join/rejoin và resync ở màn detail theo contract. Nghiệm thu UI preview và test chặn race bằng fixture riêng; chuyển sang hai browser context dùng backend thật khi auth/auction/bid sẵn sàng.
+- **Bảo — tích hợp và nghiệm thu:** theo dõi PR theo SHA, giữ kiểm tra browser transport qua proxy, review cùng Đạt thứ tự khóa hàng và sự kiện sau commit. Chỉ đánh dấu BH-19 khi test HTTP bid/close/cancel thật pass; benchmark ghi rõ tải, môi trường, p95 và tỷ lệ lỗi.
+- **Môi trường:** nhóm chưa có host/domain staging; nghiệm thu local/CI trước. Giữ HTTPS/WSS trên host thật ở trạng thái chờ. Gate phát hành cần chạy kịch bản [RUNBOOK](RUNBOOK.md), kèm bằng chứng regression và diễn tập restore. Không đưa watchlist/upload/email vào đường găng.
+
 ## 2. Chủ sở hữu
 
 ### Lê Ngô Gia Bảo — Lead / Infrastructure / Realtime
