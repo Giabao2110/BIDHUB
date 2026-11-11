@@ -4,8 +4,8 @@
 
 Prefix `/api/v1`; JSON; ID UUID; tiền VND chuỗi integer (`"150000"`), không float; ngày ISO 8601 UTC; trang mặc định 1, pageSize 20, tối đa 50. Response lỗi `{ "error": { "code": "BID_TOO_LOW", "message": "...", "requestId": "..." } }`. Frontend xử lý code, không phụ thuộc chuỗi message.
 
-Hai health endpoint, auth và GET `/categories` đã có. Các route còn lại trong
-backlog. Đạt và Phú chốt payload từng route, Bảo cập nhật types tại
+Hai health endpoint, auth, categories, auction list/detail và my auctions đã
+có. Đạt và Phú chốt payload từng route, Bảo cập nhật types tại
 packages/contracts. Thay đổi contract phải có PR và reviewer từ phía dùng API.
 
 ## Auth — Đạt implement, Phú tích hợp
@@ -21,13 +21,13 @@ packages/contracts. Thay đổi contract phải có PR và reviewer từ phía d
 - GET `/categories`: `{items:[{id,slug,name}]}`. Implemented public read endpoint;
   thứ tự ổn định theo slug rồi ID, database chưa có danh mục trả `{items:[]}`.
   Query parameters không hỗ trợ được bỏ qua; chưa có category write endpoint.
-- GET `/auctions?query=&categoryId=&status=ACTIVE&page=1&pageSize=20`: `{items,total,page,pageSize}`; whitelist sort, không ghép input thành SQL.
-- GET `/auctions/:id`: `{auction: AuctionSnapshot, description, imageUrl, seller:{id,displayName}, category:{id,name}}`. Không trả email seller.
+- GET `/auctions?query=&categoryId=&status=ACTIVE&page=1&pageSize=20`: `{items,total,page,pageSize}`. Mỗi item có shape detail. Tìm chuỗi con theo title/description, không phân biệt hoa thường. Sort `newest` mặc định (createdAt giảm dần) hoặc `endingSoon` (endsAt tăng dần), dùng ID để phá hòa. Filter hoặc pagination sai trả 422 `INVALID_QUERY`.
+- GET `/auctions/:id`: `{auction: AuctionSnapshot, description, imageUrl, seller:{id,displayName}, category:{id,name}, startsAt, openingPriceVnd}`. Hai field metadata cuối hỗ trợ form chỉnh draft của Phú. `imageUrl` nullable. Public list/detail và socket chỉ mở SCHEDULED/ACTIVE/ENDED và CANCELLED có dấu đã công bố. Chủ sở hữu xem được phiên riêng qua detail; khách và tài khoản khác nhận 404, kể cả ADMIN.
 - POST `/auctions`: auth; `{title,description,categoryId,imageUrl,openingPriceVnd,minimumIncrementVnd,startsAt,endsAt}`; 201 `{auction}` trạng thái DRAFT.
 - PATCH `/auctions/:id`: owner, draft only, 200 `{auction}`; 403 không là owner, 409 sai trạng thái.
 - DELETE `/auctions/:id`: owner, draft only; 204. Chưa có bid nên hard delete draft chấp nhận được; không xóa lịch sử auction đã công bố.
 - POST `/auctions/:id/publish`: owner; 200 `{auction}` ACTIVE/SCHEDULED, kiểm tra trường bắt buộc/thời gian.
-- GET `/me/auctions`: phiên do current user tạo; không nhận sellerId từ client.
+- GET `/me/auctions`: `{items,total,page,pageSize}` với cùng shape detail, lọc theo user từ session và gồm cả phiên riêng. Các tham số lọc/sort/phân trang giống list public. Guest nhận 401.
 - GET `/me/bids`: lịch sử cá nhân + trạng thái các phiên, paginate.
 - GET `/auctions/:id/result`: ENDED -> 200 `{auctionId,winner:{id,displayName}|null,finalPriceVnd:null|string,closedAt}`; chưa kết thúc 409 `RESULT_NOT_READY`; CANCELLED trả trạng thái hủy rõ ràng.
 

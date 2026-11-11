@@ -8,14 +8,13 @@ Ngày đối chiếu: 22/10/2026. Main `3439b9b`, migration
 
 Main đã có `processAuctionLifecycle` (activate/close/catch-up), runner và
 `withTransaction` với callbacks sau commit. Phần Đạt cần tái sử dụng các seam
-này, review nghiệp vụ và test cạnh tranh cùng bid/cancel service khi có;
-không xây scheduler song song. Shared `AuctionSnapshot` và migration 001
-vẫn khớp fixtures/ERD bên dưới. API auth/auction/bid nghiệp vụ chưa có.
+này, review nghiệp vụ và test cạnh tranh cùng bid/cancel service khi có.
+Shared `AuctionSnapshot` và migration 001 vẫn khớp fixtures/ERD bên dưới.
+Nhánh MVP đã có HTTP auth và auction reads; bid API vẫn trong backlog.
 
-Socket room hiện cho đọc mọi auction có status khác DRAFT. Điều này chưa
-phân biệt CANCELLED từ draft với CANCELLED từng public; ma trận visibility
-bên dưới là đề xuất chưa tích hợp, không mô tả quyền runtime đã bảo vệ đủ.
-Khi quyết định visibility được review, cần phối hợp Bảo áp dụng cùng REST.
+REST và Socket.IO dùng chung quy tắc đọc công khai trong nhánh MVP. Migration
+003 thêm `auctions.was_published`. Các phiên SCHEDULED/ACTIVE/ENDED hiện hữu
+được đánh dấu đã công bố. CANCELLED cũ thiếu chứng cứ công bố được giữ riêng.
 
 ## ERD theo schema hiện có
 
@@ -134,10 +133,11 @@ history `(auction_id,created_at DESC,id)`, sessions `(expires_at)`.
 - Result không bid: winner/winning bid/final price cùng null. Countdown hết
   chưa đồng nghĩa result sẵn sàng; server chốt mới có kết quả.
 
-## Visibility đề xuất — chờ Bảo/Phú review trước BH-07/BH-09
+## Visibility dùng cho BH-07 và đề xuất cho các route tiếp theo
 
-Thiết kế nhóm mới chốt guest đọc public và owner sửa draft. Ma trận sau làm rõ
-đề xuất cho phần còn thiếu, chưa thay đổi endpoint/types hoặc được human duyệt.
+Thiết kế nhóm chốt guest đọc public và owner sửa draft. Nhánh MVP triển khai
+list/detail, socket join và `/me/auctions` theo ma trận. Quyền admin đọc phiên
+riêng và quy tắc cho các route bid/admin vẫn cần nhóm review.
 
 | Luồng | Guest / member khác | Owner | ADMIN |
 |---|---|---|---|
@@ -152,10 +152,9 @@ Payload public giữ seller `{id,displayName}` và history `bidderDisplayName`;
 không email, IP, password/token hash hay idempotency key. Auth trả email chỉ cho
 chính current user. Socket phải dùng cùng visibility với REST.
 
-**Blocker thiết kế:** schema chưa có dấu mốc published để phân biệt CANCELLED
-từ DRAFT và từ phiên public. Không dùng version/starts_at để đoán. Trước
-BH-03-A/BH-07 phải review lựa chọn thêm `published_at` bằng migration mới hoặc
-chốt visibility CANCELLED khác; phân đoạn này không tự thêm field.
+Dấu `was_published` là boolean vì dữ liệu cũ thiếu thời điểm công bố chính xác.
+Khi triển khai cancel, giữ dấu này và đánh dấu true khi trạng thái trước hủy
+là SCHEDULED/ACTIVE. Không suy từ version hoặc starts_at.
 
 ## Quyết định mở và hạn chốt
 
