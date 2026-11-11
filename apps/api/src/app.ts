@@ -7,11 +7,14 @@ import { pool } from './database/pool.js';
 import { log } from './observability/logger.js';
 import { categoriesRouter } from './modules/categories/routes.js';
 import { metrics } from './observability/metrics.js';
+import { browserSession } from './modules/auth/browser-session.js';
+import { authRouter } from './modules/auth/routes.js';
 
 export const app = express();
 app.disable('x-powered-by');
+if (env.trustWebProxy) app.set('trust proxy', 1);
 app.use(helmet());
-app.use(cors({ origin: env.webOrigin }));
+app.use(cors({ origin: env.webOrigin, credentials: true }));
 app.use(metrics.middleware);
 app.use((req, res, next) => {
   res.locals.requestId = randomUUID();
@@ -32,6 +35,8 @@ app.get('/api/v1/health/ready', async (_req, res) => {
   catch { res.status(503).json({ status: 'not_ready' }); }
 });
 app.use('/api/v1/categories', categoriesRouter(pool));
+const browser = browserSession(pool, env.webOrigin);
+app.use('/api/v1/auth', authRouter(pool, browser));
 app.use((_req, res) => res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found', requestId: res.locals.requestId } }));
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const badJson = err instanceof SyntaxError && 'status' in err && err.status === 400;
