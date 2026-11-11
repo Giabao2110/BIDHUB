@@ -7,7 +7,7 @@ Current follow-up: [21 October verification and recovery tooling](BAO-VERIFICATI
 - API HOST cấu hình được cho Docker; structured request logs gồm request ID/status/duration, không log body/header/query.
 - JSON parser error có request ID và HTTP 413 cho body quá lớn.
 - Socket auction:join/leave: validate UUID, kiểm tra DB phiên không phải DRAFT, tối đa 5 phòng/connection, 20 operations/10 giây, serialize join tránh race vượt giới hạn.
-- Exact Origin ở Socket handshake; client web phải cùng WEB_ORIGIN.
+- Socket handshake kiểm tra Origin nếu có. Browser polling GET cùng origin có thể không gửi Origin; chỉ chấp nhận khi Host khớp WEB_ORIGIN và Fetch Metadata xác nhận request same-origin. Đây là kiểm tra nguồn kết nối, không thay thế xác thực hay phân quyền.
 - withTransaction helper: BEGIN/COMMIT/ROLLBACK, release connection, callback event chỉ sau commit; callback lỗi không biến bid đã commit thành lỗi HTTP.
 - Dockerfiles API/web, compose ứng dụng với DB private và readiness, Nginx SPA fallback/API proxy/WebSocket upgrade/API rate limit.
 - Mẫu TLS host Nginx và backup script Linux dùng pg_dump archive, không ghi đè backup cũ.

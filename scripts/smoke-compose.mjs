@@ -10,6 +10,15 @@ assert.match(await (await get('/')).text(), /BIDHUB/);
 assert.match(await (await get('/auctions/test-nested-route')).text(), /BIDHUB/);
 assert.equal((await (await get('/api/v1/health/live')).json()).status, 'ok');
 assert.equal((await (await get('/api/v1/health/ready')).json()).status, 'ready');
+const pollingHandshake = new URL('/socket.io/?EIO=4&transport=polling', origin);
+for (const headers of [{}, {
+  Origin: 'https://untrusted.example',
+  'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty',
+}]) {
+  const response = await fetch(pollingHandshake, { headers, signal: AbortSignal.timeout(5000) });
+  assert.equal(response.status, 403, 'polling without trusted origin evidence must be denied');
+  await response.text();
+}
 for (const transport of ['polling', 'websocket']) {
   const client = io(origin, { transports: [transport], extraHeaders: { Origin: origin }, reconnection: false });
   try {

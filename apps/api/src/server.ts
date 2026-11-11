@@ -9,9 +9,19 @@ import { log } from './observability/logger.js';
 import { processAuctionLifecycle, startAuctionLifecycle } from './jobs/auction-lifecycle.js';
 import { metrics, metricsServer } from './observability/metrics.js';
 const server = createServer(app);
+const webHost = new URL(env.webOrigin).host;
 const io = new Server(server, {
   cors: { origin: env.webOrigin }, maxHttpBufferSize: 4096,
-  allowRequest: (req, callback) => callback(null, req.headers.origin === env.webOrigin),
+  allowRequest: (req, callback) => {
+    const origin = req.headers.origin;
+    // Same-origin browser polling GETs omit Origin. Accept only a same-origin
+    // fetch to the configured host; an explicit foreign Origin still fails.
+    const allowed = origin === undefined
+      ? req.method === 'GET' && req.headers.host === webHost && req.headers['sec-fetch-site'] === 'same-origin'
+        && req.headers['sec-fetch-mode'] === 'cors' && req.headers['sec-fetch-dest'] === 'empty'
+      : origin === env.webOrigin;
+    callback(null, allowed);
+  },
 });
 registerAuctionRooms(io, async id => {
   const result = await pool.query("SELECT 1 FROM auctions WHERE id=$1 AND status <> 'DRAFT'", [id]);
