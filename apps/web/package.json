@@ -9,8 +9,9 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test:preview": "playwright test",
-    "format": "prettier --write src tests playwright.config.ts index.html",
-    "format:check": "prettier --check src tests playwright.config.ts index.html"
+    "test:realtime": "playwright test --config playwright.realtime.config.ts",
+    "format": "prettier --write src tests playwright*.config.ts index.html",
+    "format:check": "prettier --check src tests playwright*.config.ts index.html"
   },
   "dependencies": {
     "@bidhub/contracts": "0.1.0",
@@ -19,7 +20,8 @@
     "@tanstack/react-query": "^5.104.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.18.4"
+    "react-router-dom": "^7.18.4",
+    "socket.io-client": "^4.8.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
@@ -27,6 +29,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "prettier": "^3.9.10",
+    "socket.io": "^4.8.0",
     "typescript": "^5.9.0",
     "vite": "^7.0.0"
   }
