@@ -4,7 +4,7 @@ Real-Time Auction Platform — Web Application Development project.
 
 ## Current status
 
-Development foundation with **frontend REST flows and a separate fixture preview, not a completed auction application**. Implemented: frontend account/session/draft/listing flows against the documented API contract, responsive screens, labelled preview fixtures, Express health and public categories endpoints, PostgreSQL migrations/demo seed, Argon2id helpers and internal hashed-session persistence, validated Socket.IO rooms, after-commit helper, lifecycle scheduler, CI and Docker/Nginx configuration. Authentication/CSRF HTTP routes and auction CRUD/list/detail HTTP routes are still missing: the frontend flows are verified with intercepted API fixtures, not end-to-end authentication or auction persistence. Transactional bidding, frontend realtime integration and production deployment remain unfinished.
+Development foundation with **PostgreSQL-backed auth/CSRF, frontend REST flows and a separate labelled fixture preview**. The API serves health, public categories, registration, login, logout and session lookup. The auction detail client includes Socket.IO updates, REST resync after joining and a 15-second REST fallback, verified with REST fixtures and real room handlers. The project includes migrations/demo seed, the after-commit helper, the lifecycle scheduler, CI and Docker/Nginx configuration. Auction CRUD/list/detail HTTP routes, transactional bid HTTP, end-to-end auction flows and production deployment remain unfinished.
 
 Public categories are available from PostgreSQL at `GET /api/v1/categories`.
 Run `npm run test:categories-db --workspace @bidhub/api` with a dedicated
@@ -12,7 +12,7 @@ Run `npm run test:categories-db --workspace @bidhub/api` with a dedicated
 results and sanitized database errors. This command is separate from `npm test`
 and fails explicitly if its test database is not configured.
 
-Frontend-only preview: `npm ci`, then `npm run dev:web`. Open `/preview/auctions`, `/preview/login`, `/preview/auctions/new` or `/preview/dashboard` without an API/database. All preview data is labelled as sample data; preview forms do not authenticate users or save auctions. Normal `/auctions`, `/login`, `/register` and `/dashboard` routes call real APIs and show errors while required backend routes remain unavailable; there is no silent mock fallback.
+Frontend-only preview: `npm ci`, then `npm run dev:web`. Open `/preview/auctions`, `/preview/login`, `/preview/auctions/new` or `/preview/dashboard` without an API/database. All preview data is labelled as sample data; preview forms do not authenticate users or save auctions. Normal routes call the API and surface errors for unavailable operations.
 
 ## Team
 
@@ -43,10 +43,13 @@ Open http://localhost:5173. API liveness: http://localhost:3000/api/v1/health/li
 
 Frontend checks: `npm run format:check --workspace @bidhub/web` and `npm run test:preview --workspace @bidhub/web`. For browser checks on Windows with Edge installed, set `$env:PLAYWRIGHT_CHANNEL = 'msedge'` first. The preview suite uses fixtures, not a live API/database.
 
+Run `npm run test:realtime --workspace @bidhub/web` for the auction detail checks. The suite uses one browser worker, fixture REST responses and the Socket.IO room handlers on a loopback server. It covers stale snapshots, reconnect resync, polling fallback and cleanup without a database.
+
 ## Working documents
 
 - [Architecture, database and code ownership](docs/ARCHITECTURE.md)
 - [Database migrations and PostgreSQL integration tests](docs/DATABASE.md)
+- [HTTP authentication, CSRF and session tests](docs/AUTH.md)
 - [API and realtime contract](docs/API-CONTRACT.md)
 - [Detailed assignments and 8-week timeline](docs/TEAM-PLAN.md)
 - [Operations and demo acceptance](docs/RUNBOOK.md)
