@@ -12,6 +12,7 @@ import { Countdown, StatePanel, StatusBadge } from "../../components/ui";
 import { formatDate, formatMoney } from "../../lib/format";
 import { ApiRequestError } from "../../lib/api-client";
 import { useAuth } from "../auth/session";
+import { useAuctionDetail } from "./use-auction-detail";
 export function AuctionList() {
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get("query") ?? "");
@@ -154,14 +155,9 @@ export function AuctionList() {
 export function AuctionDetail() {
   const { id = "" } = useParams();
   const auth = useAuth();
-  const detail = useQuery({
-    queryKey: ["auction", auth.user?.id, id],
-    queryFn: ({ signal }) => auctionsApi.detail(id, signal),
-    refetchInterval: 15_000,
-    staleTime: 0,
-  });
+  const { detail, denied, liveStatus } = useAuctionDetail(id, auth.user?.id);
   if (detail.isPending) return <StatePanel kind="loading" />;
-  if (detail.isError)
+  if (denied || !detail.data)
     return detail.error instanceof ApiRequestError &&
       detail.error.status === 404 ? (
       <section className="state-panel">
@@ -174,7 +170,7 @@ export function AuctionDetail() {
     ) : (
       <ApiErrorPanel error={detail.error} retry={() => void detail.refetch()} />
     );
-  const item = detail.data;
+  const { item, receivedAt } = detail.data;
   return (
     <>
       <Link className="back-link" to="/auctions">
@@ -220,10 +216,7 @@ export function AuctionDetail() {
               {item.auction.status === "ACTIVE" ? "Time remaining" : "Status"}
             </span>
             <strong>
-              <Countdown
-                auction={item.auction}
-                receivedAt={detail.dataUpdatedAt}
-              />
+              <Countdown auction={item.auction} receivedAt={receivedAt} />
             </strong>
           </div>
           {auth.user?.id === item.seller.id &&
@@ -235,10 +228,11 @@ export function AuctionDetail() {
           <button className="button full" disabled>
             Bidding coming soon
           </button>
-          <p className="helper">
-            Bidding and live updates are coming in the next phase. The countdown
-            uses server time and refreshes every 15 seconds.
-          </p>
+          {liveStatus && (
+            <p className="helper" role="status">
+              {liveStatus}
+            </p>
+          )}
           {item.auction.status === "ENDED" && (
             <p className="notice">
               This auction has ended. The server will confirm the result; the

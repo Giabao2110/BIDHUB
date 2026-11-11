@@ -15,6 +15,7 @@ export const auctionsApi = {
   detail: (id: string, signal: AbortSignal) =>
     apiRequest<AuctionDetailDto>(`/auctions/${encodeURIComponent(id)}`, {
       signal,
+      cache: "no-store",
     }),
   mine: (page: number, signal: AbortSignal) =>
     apiRequest<PageResult<AuctionDetailDto>>(
