@@ -4,7 +4,7 @@ Real-Time Auction Platform — Web Application Development project.
 
 ## Current status
 
-Development foundation with **frontend REST flows and a separate fixture preview, not a completed auction application**. The API serves health, public categories and authentication with PostgreSQL sessions and CSRF. The project also includes PostgreSQL migrations and demo seed, validated Socket.IO rooms, an after-commit helper, a lifecycle scheduler, CI and Docker/Nginx configuration. Auction CRUD/list/detail HTTP routes, transactional bidding, frontend realtime integration and production deployment remain unfinished.
+Development foundation with **PostgreSQL-backed auth/CSRF, frontend REST flows and a separate labelled fixture preview**. The API serves health, public categories, registration, login, logout and session lookup. The auction detail client includes Socket.IO updates, REST resync after joining and a 15-second REST fallback, verified with REST fixtures and real room handlers. The project includes migrations/demo seed, the after-commit helper, the lifecycle scheduler, CI and Docker/Nginx configuration. Auction CRUD/list/detail HTTP routes, transactional bid HTTP, end-to-end auction flows and production deployment remain unfinished.
 
 Public categories are available from PostgreSQL at `GET /api/v1/categories`.
 Run `npm run test:categories-db --workspace @bidhub/api` with a dedicated
@@ -42,6 +42,8 @@ Open http://localhost:5173. API liveness: http://localhost:3000/api/v1/health/li
 `npm run typecheck` · `npm test` · `npm run build`
 
 Frontend checks: `npm run format:check --workspace @bidhub/web` and `npm run test:preview --workspace @bidhub/web`. For browser checks on Windows with Edge installed, set `$env:PLAYWRIGHT_CHANNEL = 'msedge'` first. The preview suite uses fixtures, not a live API/database.
+
+Run `npm run test:realtime --workspace @bidhub/web` for the auction detail checks. The suite uses one browser worker, fixture REST responses and the Socket.IO room handlers on a loopback server. It covers stale snapshots, reconnect resync, polling fallback and cleanup without a database.
 
 ## Working documents
 

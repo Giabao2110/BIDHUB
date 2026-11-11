@@ -39,6 +39,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run preview browser tests on four viewport sizes
         run: npm run test:preview --workspace @bidhub/web
+      - name: Run auction detail realtime browser tests
+        run: npm run test:realtime --workspace @bidhub/web
       - name: Upload browser failure evidence
         if: failure()
         uses: actions/upload-artifact@v4
