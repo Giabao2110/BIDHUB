@@ -6,11 +6,13 @@ import { env } from './config/env.js';
 import { pool } from './database/pool.js';
 import { log } from './observability/logger.js';
 import { categoriesRouter } from './modules/categories/routes.js';
+import { metrics } from './observability/metrics.js';
 
 export const app = express();
 app.disable('x-powered-by');
 app.use(helmet());
 app.use(cors({ origin: env.webOrigin }));
+app.use(metrics.middleware);
 app.use((req, res, next) => {
   res.locals.requestId = randomUUID();
   res.setHeader('X-Request-Id', res.locals.requestId);

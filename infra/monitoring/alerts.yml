@@ -1,0 +1,18 @@
+groups:
+  - name: bidhub
+    rules:
+      - alert: BidHubApiMetricsUnavailable
+        expr: up{job="bidhub-api"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "BIDHUB metrics target unavailable for 1 minute"}
+      - alert: BidHubLifecycleFailing
+        expr: increase(bidhub_lifecycle_runs_total{result="failure"}[5m]) > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: "BIDHUB lifecycle worker failed recently"}
+      - alert: BidHubApiServerErrors
+        expr: sum(rate(bidhub_http_duration_seconds_count{status=~"5.."}[5m])) / clamp_min(sum(rate(bidhub_http_duration_seconds_count[5m])), 0.001) > 0.05
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "API 5xx rate exceeds 5 percent for 5 minutes"}

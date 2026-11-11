@@ -25,6 +25,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - run: node --test scripts/backup-retention.test.mjs
       - name: Verify team database, session, category and contract contributions
         run: |
           npm run test:db --workspace @bidhub/api
@@ -52,6 +53,7 @@ jobs:
           DB_PASSWORD: ci_compose_only
           DATABASE_URL: postgres://bidhub:ci_compose_only@db:5432/bidhub
           WEB_ORIGIN: http://localhost:8080
+          GRAFANA_PASSWORD: ci_monitoring_dashboard_only
         run: |
           docker compose -f infra/compose.app.yaml up -d --build --wait db api
           docker compose -f infra/compose.app.yaml exec -T api node apps/api/dist/database/migrate.js
@@ -62,12 +64,16 @@ jobs:
           docker compose -f infra/compose.app.yaml exec -T db psql -U bidhub -d bidhub -v ON_ERROR_STOP=1 -At < infra/restore-fingerprint.sql > /tmp/bidhub-expected.txt
           sh infra/backup.sh /tmp/bidhub-ci.dump
           sh infra/restore-test.sh /tmp/bidhub-ci.dump /tmp/bidhub-expected.txt
+          docker compose -f infra/compose.app.yaml -f infra/compose.monitoring.yaml up -d prometheus grafana
+          docker compose -f infra/compose.app.yaml -f infra/compose.monitoring.yaml exec -T prometheus promtool check config /etc/prometheus/prometheus.yml
+          node scripts/smoke-monitoring.mjs
       - name: Container logs and cleanup
         if: always()
         env:
           DB_PASSWORD: ci_compose_only
           DATABASE_URL: postgres://bidhub:ci_compose_only@db:5432/bidhub
           WEB_ORIGIN: http://localhost:8080
+          GRAFANA_PASSWORD: ci_monitoring_dashboard_only
         run: |
-          docker compose -f infra/compose.app.yaml logs --tail 80
-          docker compose -f infra/compose.app.yaml down -v
+          docker compose -f infra/compose.app.yaml -f infra/compose.monitoring.yaml logs --tail 80
+          docker compose -f infra/compose.app.yaml -f infra/compose.monitoring.yaml down -v
