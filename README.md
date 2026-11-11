@@ -4,13 +4,17 @@ Real-Time Auction Platform — Web Application Development project.
 
 ## Current status
 
-Development foundation with **PostgreSQL-backed auth/CSRF and auction reads, frontend REST flows and a separate labelled fixture preview**. The API serves public categories and auctions plus the signed-in user's auctions. The auction detail client includes Socket.IO updates, REST resync and a 15-second REST fallback. Auction draft/publish writes, transactional bid HTTP, end-to-end auction flows and production deployment remain unfinished.
+The API serves health, PostgreSQL-backed auth/CSRF, public categories and auction reads, and owner-only draft and publish writes. The auction detail client joins Socket.IO rooms, resyncs from REST and polls every 15 seconds when disconnected. The fixture preview is separate from the normal REST routes. Transactional bid HTTP, end-to-end auction flows and production deployment remain unfinished.
 
 Public categories are available from PostgreSQL at `GET /api/v1/categories`.
 Run `npm run test:categories-db --workspace @bidhub/api` with a dedicated
 `TEST_DATABASE_URL` to verify the real HTTP endpoint, stable ordering, empty
 results and sanitized database errors. This command is separate from `npm test`
 and fails explicitly if its test database is not configured.
+
+Run `npm run test:auth-db --workspace @bidhub/api` and
+`npm run test:auctions-db --workspace @bidhub/api` with the same dedicated
+`TEST_DATABASE_URL` to verify authentication and auction HTTP flows.
 
 Frontend-only preview: `npm ci`, then `npm run dev:web`. Open `/preview/auctions`, `/preview/login`, `/preview/auctions/new` or `/preview/dashboard` without an API/database. All preview data is labelled as sample data; preview forms do not authenticate users or save auctions. Normal routes call the API and surface errors for unavailable operations.
 
