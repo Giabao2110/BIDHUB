@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const origin = new URL(process.env.WEB_ORIGIN ?? 'http://localhost:8080').origin;
-const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+const spki = process.env.BIDHUB_TLS_SMOKE_SPKI;
+const browser = await chromium.launch({
+  channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
+  // Only trust the disposable lab key. Keep certificate checks for other keys.
+  args: spki ? [`--ignore-certificate-errors-spki-list=${spki}`] : [],
+});
 try {
   const page = await browser.newPage();
   await page.goto(origin, { timeout: 10_000 });

@@ -40,6 +40,8 @@ On 12 November 2026, the [push CI run for `9dc1940`](https://github.com/Giabao21
 
 The same run restored 8 users, 8 auctions, 4 bids and 3 results into a separate database. Counts and content fingerprints matched. Restore and verification took 1 second, measured after backup creation with Compose already running. The Chromium smoke also read sold and unsold demo results from the live API through Nginx. The PostgreSQL HTTP suite covers scheduler closure.
 
+The loopback TLS gate uses the host Nginx template, an ephemeral certificate for `localhost` and the existing full stack. It checks the HTTP redirect, SPA fallback, certificate-verified HTTPS, polling and WSS through both proxies, rejected foreign origin, and secure host-prefixed auth cookies in Chromium. The staging gate still needs real DNS, a publicly trusted certificate, and verification from outside the Linux host.
+
 ## Demo script (8–10 minutes)
 
 1. Phú (2 min): home/search/detail and seller flow.
