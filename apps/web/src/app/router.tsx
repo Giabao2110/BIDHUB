@@ -5,6 +5,8 @@ import { Login } from "../features/auth/login";
 import { AuctionList, AuctionDetail } from "../features/auctions/browse";
 import { CreateAuction } from "../features/auctions/create";
 import { Dashboard } from "../features/auctions/dashboard";
+import { MyBids } from "../features/auctions/my-bids";
+import { Moderation } from "../features/admin/moderation";
 import {
   AuctionList as PreviewList,
   AuctionDetail as PreviewDetail,
@@ -61,6 +63,22 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <Dashboard />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "dashboard/bids",
+        element: (
+          <RequireAuth>
+            <MyBids />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "admin",
+        element: (
+          <RequireAuth>
+            <Moderation />
           </RequireAuth>
         ),
       },

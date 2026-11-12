@@ -784,6 +784,29 @@ svg {
 .auth-outline p {
   margin: 0;
 }
+.moderation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.moderation-results {
+  list-style: none;
+  padding: 0;
+}
+.moderation-results li {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+  padding-block: 0.75rem;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.confirmation textarea {
+  display: block;
+  width: 100%;
+  margin-block: 0.5rem;
+}
 .form-panel {
   border: 1px solid var(--line);
   background: var(--paper);
