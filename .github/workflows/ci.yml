@@ -35,6 +35,8 @@ jobs:
           node --import tsx --test docs/fixtures/auctions.test.ts
       - name: Verify bid transaction contention in PostgreSQL
         run: npm run test:bids-db --workspace @bidhub/api
+      - name: Verify moderation and personal bids in PostgreSQL
+        run: npm run test:admin-db --workspace @bidhub/api
       - run: npm run build
       - name: Check frontend formatting
         run: npm run format:check --workspace @bidhub/web
