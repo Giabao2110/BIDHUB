@@ -20,6 +20,21 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=localhost' \
 sed -e 's/bidhub\.example\.com/localhost/g' -e 's/listen /listen 127.0.0.1:/' \
   infra/host-tls.conf.example > "$tls_dir/nginx.conf"
 
+# Simulate deadlines passing during an outage on the already seeded disposable DB.
+docker compose -f infra/compose.app.yaml stop api
+aged="$(docker compose -f infra/compose.app.yaml exec -T db psql -U bidhub -d bidhub -At -v ON_ERROR_STOP=1 <<'SQL'
+WITH aged AS (
+  UPDATE auctions
+  SET starts_at = clock_timestamp() - interval '2 hours',
+      ends_at = clock_timestamp() - interval '1 second'
+  WHERE (id = 'd3000000-0000-4000-8000-000000000103' AND status = 'ACTIVE')
+     OR (id = 'd3000000-0000-4000-8000-000000000102' AND status = 'SCHEDULED')
+  RETURNING id
+)
+SELECT count(*) FROM aged;
+SQL
+)"
+test "$aged" = '2'
 docker compose -f infra/compose.app.yaml up -d --wait api
 docker compose -f infra/compose.app.yaml up -d --no-deps --force-recreate --wait web
 docker run --rm -d --network host --name "$container" \
@@ -34,3 +49,22 @@ export BIDHUB_TLS_SMOKE_SPKI="$(openssl x509 -in "$tls_dir/fullchain.pem" -pubke
 node scripts/smoke-compose.mjs
 node scripts/smoke-browser-socket.mjs
 node scripts/smoke-browser-auth.mjs
+
+node --input-type=module <<'JS'
+import assert from 'node:assert/strict';
+
+for (const [suffix, winner, price] of [
+  ['103', 'Demo Bidder', '110000'],
+  ['102', null, null],
+]) {
+  const response = await fetch(`${process.env.WEB_ORIGIN}/api/v1/auctions/d3000000-0000-4000-8000-000000000${suffix}/result`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  assert.equal(response.status, 200, `missing result for auction ${suffix} after restart`);
+  const result = await response.json();
+  assert.equal(result.winner?.displayName ?? null, winner);
+  assert.equal(result.finalPriceVnd, price);
+  assert.ok(Number.isFinite(Date.parse(result.closedAt)));
+}
+console.log('API restart smoke passed: overdue active and scheduled auctions closed with the expected results');
+JS
