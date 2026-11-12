@@ -71,6 +71,8 @@ jobs:
           node scripts/smoke-browser-socket.mjs
           node scripts/smoke-browser-auth.mjs
           docker compose -f infra/compose.app.yaml exec -T db psql -U bidhub -d bidhub -v ON_ERROR_STOP=1 < infra/ci-recovery-fixture.sql
+          export BIDHUB_ADMIN_SMOKE_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("hex"))')"
+          docker compose -f infra/compose.app.yaml exec -T -e NODE_ENV=test -e SEED_DEMO_PASSWORD="$BIDHUB_ADMIN_SMOKE_PASSWORD" api node apps/api/dist/database/seed.js
           node scripts/smoke-browser-auctions.mjs
           docker compose -f infra/compose.app.yaml exec -T db psql -U bidhub -d bidhub -v ON_ERROR_STOP=1 -At < infra/restore-fingerprint.sql > /tmp/bidhub-expected.txt
           sh infra/backup.sh /tmp/bidhub-ci.dump

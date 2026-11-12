@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { chromium } from 'playwright';
 
 if (process.env.BIDHUB_ALLOW_AUTH_SMOKE_WRITE !== '1') throw new Error('Auction smoke requires explicit disposable database opt-in');
+const adminPassword = process.env.BIDHUB_ADMIN_SMOKE_PASSWORD;
+if (!adminPassword) throw new Error('Auction smoke requires the disposable demo admin password');
 const origin = new URL(process.env.WEB_ORIGIN ?? 'http://localhost:8080');
 if (!['localhost', '127.0.0.1'].includes(origin.hostname)) throw new Error('Auction smoke requires a loopback endpoint');
 const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
@@ -84,5 +86,41 @@ try {
   const history = await (await visitor.request.get(`${path}/bids`)).json();
   assert.equal(history.total, 1);
   assert.equal(history.items[0].amountVnd, '1700000');
-  console.log('Browser auction smoke passed: draft visibility, publish, public room, bid retry, realtime price in the seller context');
+
+  await buyerPage.goto('/dashboard');
+  await buyerPage.getByRole('link', { name: 'My bids', exact: true }).click();
+  await buyerPage.getByRole('heading', { name: 'My bids', exact: true }).waitFor();
+  await buyerPage.getByRole('link', { name: title, exact: true }).waitFor();
+  assert.equal(await buyerPage.locator('.dashboard-row').count(), 1);
+  await buyerPage.goto('/admin');
+  await buyerPage.getByRole('heading', { name: 'Administrator access required' }).waitFor();
+
+  const admin = await browser.newContext({ baseURL: origin.origin, viewport: { width: 390, height: 844 } });
+  const adminPage = await admin.newPage();
+  adminPage.setDefaultTimeout(10_000);
+  await adminPage.goto('/admin');
+  await adminPage.waitForURL('**/login?*');
+  await adminPage.getByLabel('Email', { exact: true }).fill('admin@demo.bidhub.invalid');
+  await adminPage.getByLabel('Password', { exact: true }).fill(adminPassword);
+  await adminPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await adminPage.getByRole('heading', { name: 'Moderation', exact: true }).waitFor();
+  await adminPage.getByLabel('Auction title or ID').fill(title);
+  await adminPage.getByRole('button', { name: 'Find auctions' }).click();
+  await adminPage.getByRole('button', { name: 'Cancel auction', exact: true }).click();
+  await adminPage.getByLabel('Reason').fill('Disposable browser cancellation');
+  await adminPage.getByRole('button', { name: 'Confirm cancel auction' }).click();
+  await adminPage.getByRole('status').filter({ hasText: 'Auction cancelled.' }).waitFor();
+  await page.getByText('This auction was cancelled and cannot accept bids.', { exact: true }).waitFor();
+
+  await adminPage.getByLabel('Account email').fill(`bid-${bidToken}@example.invalid`);
+  await adminPage.getByRole('button', { name: 'Find account' }).click();
+  await adminPage.getByRole('button', { name: 'Disable account', exact: true }).click();
+  await adminPage.getByLabel('Reason').fill('Disposable session revocation');
+  await adminPage.getByRole('button', { name: 'Confirm disable account' }).click();
+  await adminPage.getByRole('status').filter({ hasText: 'Account disabled.' }).waitFor();
+  assert.equal((await visitor.request.get('/api/v1/me/bids')).status(), 401);
+  await buyerPage.goto('/dashboard/bids');
+  await buyerPage.waitForURL('**/login?*');
+  assert.equal(await adminPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  console.log('Browser auction smoke passed: publish, idempotent UI bid, realtime price/cancellation, personal bids and admin session revocation');
 } finally { await browser.close(); }
