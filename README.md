@@ -61,6 +61,6 @@ Run `npm run test:realtime --workspace @bidhub/web` for the auction detail check
 - [Monitoring dashboard, alerts and backup scheduling/retention](docs/MONITORING-OPERATIONS.md)
 - [Bảo independent infrastructure progress and verification, 21 October](docs/BAO-VERIFICATION-2026-10-21.md)
 
-Infrastructure update: auction room validation/caps, after-commit transaction helper, structured request logs, auction lifecycle scheduler and full-stack Docker/Nginx configuration are implemented. Local Docker builds, Nginx/socket smoke tests and a populated backup/restore exercise passed on 21 October; see the dated verification report for evidence and limits. Bid/cancel services still need integration with the same row-lock discipline. Real-host TLS deployment remains unfinished.
+Infrastructure update: auction room validation/caps, after-commit transaction helper, structured request logs, auction lifecycle scheduler and full-stack Docker/Nginx configuration are implemented. Local Docker builds, Nginx/socket smoke tests and a populated backup/restore exercise passed on 21 October; see the dated verification report for evidence and limits. Bid placement, cancellation and the lifecycle worker share the auction row lock, with PostgreSQL integration tests for their contention paths. Real-host TLS deployment remains unfinished.
 
 The schedule targets 6 December 2026 provisionally; confirm the course's actual deadline. Money is stored as integer VND and serialized as strings. All times are UTC in storage/API; display in Asia/Ho_Chi_Minh.
