@@ -36,6 +36,10 @@ See root README to start web/API/database. Liveness checks process; readiness ch
 
 CI publishes a `auction-read-lab` JSON artifact when the lab run succeeds. It records the checkout SHA, 50 workers, 500 PostgreSQL-backed auction-list reads, successful-response p50/p95, outcomes, and API process CPU/RSS before and after. The read load goes directly to the API inside Compose; the separate browser smoke still goes through Nginx. The measurements do not represent Nginx's rate-limited public capacity, bid contention, or a production service-level guarantee. Record the observed numbers and target outcome, not the target as an achievement.
 
+On 12 November 2026, the [push CI run for `9dc1940`](https://github.com/Giabao2110/BIDHUB/actions/runs/43170320087) recorded 500 successful reads out of 500 with 50 workers and 20 warmups on Linux and PostgreSQL 17.11. The [JSON artifact](https://github.com/Giabao2110/BIDHUB/actions/runs/43170320087/artifacts/13922131345) reports p50 49.41 ms, p95 91.54 ms, 0% errors, 553.09 ms elapsed, 0.5661 API process CPU seconds, and API process RSS from 98.16 to 105.25 MiB.
+
+The same run restored 8 users, 8 auctions, 4 bids and 3 results into a separate database. Counts and content fingerprints matched. Restore and verification took 1 second, measured after backup creation with Compose already running. The Chromium smoke also read sold and unsold demo results from the live API through Nginx. The PostgreSQL HTTP suite covers scheduler closure.
+
 ## Demo script (8–10 minutes)
 
 1. Phú (2 min): home/search/detail and seller flow.
