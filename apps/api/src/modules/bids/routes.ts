@@ -87,3 +87,19 @@ export function bidsRouter(db: Pool, browser: BrowserSession, publish: (auction:
 
   return router;
 }
+
+export function myBidsRouter(db: Pool, browser: BrowserSession) {
+  const router = Router();
+  router.get('/', browser.requireUser, async (req, res) => {
+    const { page, pageSize } = pagination(req.query);
+    const bidderId = (res.locals.user as SessionUser).id;
+    const { rows } = await db.query(`
+      SELECT totals.total, b.id, b.amount_vnd::text AS "amountVnd", b.created_at AS "createdAt",
+        a.id AS "auctionId", a.title AS "auctionTitle", a.status AS "auctionStatus"
+      FROM (SELECT count(*) AS total FROM bids WHERE bidder_id=$1) totals
+      LEFT JOIN LATERAL (SELECT * FROM bids WHERE bidder_id=$1 ORDER BY created_at DESC,id LIMIT $2 OFFSET $3) b ON true
+      LEFT JOIN auctions a ON a.id=b.auction_id ORDER BY b.created_at DESC,b.id`, [bidderId, pageSize, (page - 1) * pageSize]);
+    res.json({ items: rows.filter(row => row.id !== null).map(({ total: _total, ...item }) => item), total: Number(rows[0]?.total ?? 0), page, pageSize });
+  });
+  return router;
+}
