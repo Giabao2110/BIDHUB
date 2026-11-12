@@ -88,6 +88,9 @@ async function installRestFixture(
       },
     }),
   );
+  await page.route(`**/api/v1${detailPath}/bids?*`, (route) =>
+    route.fulfill({ json: { items: [], total: 0, page: 1, pageSize: 20 } }),
+  );
   await page.route("**/api/v1/auctions?*", (route) =>
     route.fulfill({ json: { items: [], total: 0, page: 1, pageSize: 20 } }),
   );
@@ -106,6 +109,16 @@ test("room updates win over a late REST response, duplicates and other auctions"
 }) => {
   const heldResponse = Promise.withResolvers<AuctionSnapshot>();
   const joinedRequest = Promise.withResolvers<boolean>();
+  await page.route(`**/api/v1${detailPath}/result`, (route) =>
+    route.fulfill({
+      json: {
+        auctionId,
+        winner: { id: "fixture-winner", displayName: "Fixture winner" },
+        finalPriceVnd: "300000",
+        closedAt: new Date().toISOString(),
+      },
+    }),
+  );
   await installRestFixture(page, () => {
     if (!joins) return snapshot(1);
     joinedRequest.resolve(io.sockets.adapter.rooms.has(room));
@@ -119,7 +132,7 @@ test("room updates win over a late REST response, duplicates and other auctions"
   io.to(room).emit("auction:updated", { auction: ended });
   await expect(price(page)).toHaveText("300,000 VND");
   await expect(
-    page.getByText("This auction has ended.", { exact: false }),
+    page.getByText("Fixture winner won at 300,000 VND.", { exact: true }),
   ).toBeVisible();
 
   const socket = io.sockets.sockets.values().next().value!;
@@ -135,7 +148,7 @@ test("room updates win over a late REST response, duplicates and other auctions"
   await expect(connected(page)).toBeVisible();
   await expect(price(page)).toHaveText("300,000 VND");
   await expect(
-    page.getByText("This auction has ended.", { exact: false }),
+    page.getByText("Fixture winner won at 300,000 VND.", { exact: true }),
   ).toBeVisible();
 });
 
