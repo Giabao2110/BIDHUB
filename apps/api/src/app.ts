@@ -9,6 +9,8 @@ import { categoriesRouter } from './modules/categories/routes.js';
 import { metrics } from './observability/metrics.js';
 import { browserSession } from './modules/auth/browser-session.js';
 import { authRouter } from './modules/auth/routes.js';
+import { auctionsRouter, myAuctionsRouter } from './modules/auctions/routes.js';
+import { apiError, HttpProblem } from './http/error.js';
 
 export const app = express();
 app.disable('x-powered-by');
@@ -37,8 +39,11 @@ app.get('/api/v1/health/ready', async (_req, res) => {
 app.use('/api/v1/categories', categoriesRouter(pool));
 const browser = browserSession(pool, env.webOrigin);
 app.use('/api/v1/auth', authRouter(pool, browser));
+app.use('/api/v1/auctions', auctionsRouter(pool, browser));
+app.use('/api/v1/me/auctions', myAuctionsRouter(pool, browser));
 app.use((_req, res) => res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found', requestId: res.locals.requestId } }));
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (err instanceof HttpProblem) return apiError(res, err.status, err.code, err.message);
   const badJson = err instanceof SyntaxError && 'status' in err && err.status === 400;
   const tooLarge = typeof err === 'object' && err !== null && 'status' in err && err.status === 413;
   res.status(tooLarge ? 413 : badJson ? 400 : 500).json({ error: { code: tooLarge ? 'PAYLOAD_TOO_LARGE' : badJson ? 'INVALID_JSON' : 'INTERNAL_ERROR', message: tooLarge ? 'Request body too large' : badJson ? 'Invalid JSON body' : 'Unexpected server error', requestId: res.locals.requestId ?? randomUUID() } });

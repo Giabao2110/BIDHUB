@@ -11,7 +11,7 @@ import { processAuctionLifecycle } from '../jobs/auction-lifecycle.js';
 
 const connectionString = process.env.TEST_DATABASE_URL;
 if (!connectionString) throw new Error('TEST_DATABASE_URL is required; use a dedicated PostgreSQL test database.');
-const migrationNames = ['001_initial.sql', '002_result_integrity.sql'];
+const migrationNames = ['001_initial.sql', '002_result_integrity.sql', '003_auction_publication.sql'];
 
 async function database(t: TestContext) {
   const schema = `migration_test_${randomUUID().replaceAll('-', '')}`;
@@ -105,7 +105,20 @@ test('upgrade from 001 preserves valid rows and lifecycle can close winner/no-bi
   await writeFile(join(folder.path, '001_initial.sql'), await readFile(new URL('../../migrations/001_initial.sql', import.meta.url)));
   await runMigrations(db, folder.url);
   const d = await domainRows(db);
-  assert.deepEqual(await runMigrations(db), ['002_result_integrity.sql']);
+  const prePublication = await db.query(`INSERT INTO auctions(seller_id,category_id,title,description,status,
+    opening_price_vnd,current_price_vnd,minimum_increment_vnd,starts_at,ends_at)
+    SELECT seller_id,category_id,old_status,'Test',old_status,100,100,10,starts_at,ends_at
+    FROM auctions CROSS JOIN (VALUES('ACTIVE'),('CANCELLED'),('SCHEDULED'),('ENDED')) statuses(old_status)
+    WHERE id=$1`, [d.auction]);
+  assert.equal(prePublication.rowCount, 4);
+  assert.deepEqual(await runMigrations(db), ['002_result_integrity.sql', '003_auction_publication.sql']);
+  const visibility = await db.query('SELECT status,was_published FROM auctions ORDER BY status');
+  assert.deepEqual(visibility.rows, [
+    { status: 'ACTIVE', was_published: true }, { status: 'CANCELLED', was_published: false },
+    { status: 'DRAFT', was_published: false }, { status: 'ENDED', was_published: true },
+    { status: 'SCHEDULED', was_published: true },
+  ]);
+  await db.query('DELETE FROM auctions WHERE id<>$1', [d.auction]);
   await db.query("UPDATE auctions SET status='ACTIVE',current_price_vnd=110,highest_bidder_id=$1 WHERE id=$2", [d.buyer, d.auction]);
   const noBid = (await db.query(`INSERT INTO auctions(seller_id,category_id,title,description,status,
     opening_price_vnd,current_price_vnd,minimum_increment_vnd,starts_at,ends_at)
