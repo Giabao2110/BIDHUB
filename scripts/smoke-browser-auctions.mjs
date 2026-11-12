@@ -122,5 +122,11 @@ try {
   await buyerPage.goto('/dashboard/bids');
   await buyerPage.waitForURL('**/login?*');
   assert.equal(await adminPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
-  console.log('Browser auction smoke passed: publish, idempotent UI bid, realtime price/cancellation, personal bids and admin session revocation');
+  // Read the seeded sold and unsold results from the real API.
+  await page.goto('/auctions/d3000000-0000-4000-8000-000000000104');
+  await page.getByText('Demo Bidder won at 120,000 VND.', { exact: true }).waitFor();
+  await page.goto('/auctions/d3000000-0000-4000-8000-000000000106');
+  await page.getByText('No winning bid.', { exact: true }).waitFor();
+
+  console.log('Browser auction smoke passed: publish, idempotent UI bid, realtime price/cancellation, personal bids, moderation and sold/unsold results');
 } finally { await browser.close(); }
