@@ -14,6 +14,7 @@
     "db:seed": "tsx --env-file=../../.env src/database/seed.ts",
     "test:auth-db": "node --import tsx --test src/modules/auth/sessions.test.ts src/modules/auth/routes.test.ts",
     "test:categories-db": "node --import tsx --test src/modules/categories/routes.test.ts",
+    "test:auctions-db": "node --import tsx --test src/modules/auctions/read.test.ts src/modules/auctions/write.test.ts",
     "test:bids-db": "node --import tsx --test src/modules/bids/bid-service.test.ts"
   },
   "dependencies": {

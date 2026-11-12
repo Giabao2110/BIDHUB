@@ -23,7 +23,7 @@ export function browserSession(db: Pool, webOrigin: string) {
   const cookieOptions = { httpOnly: true, sameSite: 'lax' as const, secure, path: '/' };
   const csrfKey = randomBytes(32);
   const sessionToken = (req: Request) => readCookie(req, sessionName);
-  const user = (req: Request) => findSessionUser(db, sessionToken(req));
+  const findUser = (req: Request) => findSessionUser(db, sessionToken(req));
 
   function signCsrf(seed: string, token: string): string {
     return createHmac('sha256', csrfKey).update(seed).update('.').update(token).digest('base64url');
@@ -62,7 +62,7 @@ export function browserSession(db: Pool, webOrigin: string) {
 
   const requireUser: RequestHandler = async (req, res, next) => {
     res.set('Cache-Control', 'no-store');
-    const currentUser = await user(req);
+    const currentUser = await findUser(req);
     if (!currentUser) {
       apiError(res, 401, 'UNAUTHENTICATED', 'Sign in to continue');
       return;
@@ -75,6 +75,7 @@ export function browserSession(db: Pool, webOrigin: string) {
     csrfBootstrap,
     requireCsrf,
     requireUser,
+    findUser,
     sessionToken,
     setCookie(res: Response, session: { token: string; expiresAt: Date }) {
       res.cookie(sessionName, session.token, { ...cookieOptions, expires: session.expiresAt });

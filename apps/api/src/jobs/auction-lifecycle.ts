@@ -2,6 +2,7 @@ import type { Pool } from 'pg';
 import type { PublicAuctionSnapshot } from '../realtime/publisher.js';
 import { withTransaction } from '../realtime/after-commit.js';
 import { log } from '../observability/logger.js';
+import { auctionSnapshot } from '../modules/auctions/snapshot.js';
 
 /** One bounded batch; row locks serialize lifecycle with bid/cancel transactions. */
 export async function processAuctionLifecycle(db: Pool, publish: (snapshot: PublicAuctionSnapshot) => void): Promise<number> {
@@ -25,11 +26,7 @@ export async function processAuctionLifecycle(db: Pool, publish: (snapshot: Publ
       const updated = await client.query(`UPDATE auctions SET status=$2, version=version+1
         WHERE id=$1 RETURNING *`, [auction.id, ended ? 'ENDED' : 'ACTIVE']);
       const row = updated.rows[0];
-      const snapshot: PublicAuctionSnapshot = {
-        id: row.id, title: row.title, status: row.status,
-        currentPriceVnd: String(row.current_price_vnd), minimumIncrementVnd: String(row.minimum_increment_vnd),
-        endsAt: new Date(row.ends_at).toISOString(), serverTime: now.toISOString(), version: row.version,
-      };
+      const snapshot = auctionSnapshot(row, now);
       afterCommit(() => publish(snapshot));
     }
     return due.rowCount ?? 0;

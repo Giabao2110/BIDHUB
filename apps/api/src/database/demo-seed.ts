@@ -40,10 +40,10 @@ export async function seedDemo(db: Pick<Pool, 'connect'>, password: string): Pro
     for (const [index, auction] of auctions.entries()) {
       const hasBid = auction.status === 'ACTIVE' || auction.id === id(104);
       const inserted = await client.query(`INSERT INTO auctions(id,seller_id,category_id,title,description,status,
-        opening_price_vnd,current_price_vnd,minimum_increment_vnd,starts_at,ends_at,highest_bidder_id,version)
-        VALUES($1,$2,$3,$4,'Synthetic demo item; no payment or delivery.',$5,100000,$6,10000,$7,$8,$9,$10)
+        opening_price_vnd,current_price_vnd,minimum_increment_vnd,starts_at,ends_at,highest_bidder_id,version,was_published)
+        VALUES($1,$2,$3,$4,'Synthetic demo item; no payment or delivery.',$5,100000,$6,10000,$7,$8,$9,$10,$11)
         ON CONFLICT(id) DO NOTHING RETURNING id`,
-      [auction.id, id(2), id(10), auction.title, auction.status, auction.price, at(auction.start), at(auction.end), hasBid ? id(3) : null, auction.version]);
+      [auction.id, id(2), id(10), auction.title, auction.status, auction.price, at(auction.start), at(auction.end), hasBid ? id(3) : null, auction.version, auction.status !== 'DRAFT']);
       if (!inserted.rowCount) {
         const existing = (await client.query('SELECT seller_id,category_id FROM auctions WHERE id=$1', [auction.id])).rows[0];
         if (existing.seller_id !== id(2) || existing.category_id !== id(10)) throw new Error('Demo auction ID conflicts with existing data.');

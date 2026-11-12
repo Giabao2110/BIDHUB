@@ -42,6 +42,7 @@ test('seed twice/concurrently preserves rows, credentials and history; initial d
   for (const a of auctions) {
     assert.ok(a.ends_at > a.starts_at);
     assert.equal(a.seller_id, demoId(2));
+    assert.equal(a.was_published, a.status !== 'DRAFT');
     if (a.status === 'SCHEDULED') assert.ok(a.starts_at.getTime() > Date.now());
     if (a.status === 'ACTIVE') assert.ok(a.starts_at.getTime() < start && a.ends_at.getTime() > Date.now());
     if (a.status === 'ENDED') assert.ok(a.ends_at.getTime() < start);

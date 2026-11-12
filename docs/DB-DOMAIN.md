@@ -8,14 +8,13 @@ Ngày đối chiếu: 22/10/2026. Main `3439b9b`, migration
 
 Main đã có `processAuctionLifecycle` (activate/close/catch-up), runner và
 `withTransaction` với callbacks sau commit. Phần Đạt cần tái sử dụng các seam
-này, review nghiệp vụ và test cạnh tranh cùng bid/cancel service khi có;
-không xây scheduler song song. Shared `AuctionSnapshot` và migration 001
-vẫn khớp fixtures/ERD bên dưới. API auth/auction/bid nghiệp vụ chưa có.
+này, review nghiệp vụ và test cạnh tranh cùng bid/cancel service khi có.
+Shared `AuctionSnapshot` và migration 001 vẫn khớp fixtures/ERD bên dưới.
+Nhánh MVP đã có HTTP auth, auction reads, draft và publish; bid API vẫn trong backlog.
 
-Socket room hiện cho đọc mọi auction có status khác DRAFT. Điều này chưa
-phân biệt CANCELLED từ draft với CANCELLED từng public; ma trận visibility
-bên dưới là đề xuất chưa tích hợp, không mô tả quyền runtime đã bảo vệ đủ.
-Khi quyết định visibility được review, cần phối hợp Bảo áp dụng cùng REST.
+REST và Socket.IO dùng chung quy tắc đọc công khai trong nhánh MVP. Migration
+003 thêm `auctions.was_published`. Các phiên SCHEDULED/ACTIVE/ENDED hiện hữu
+được đánh dấu đã công bố. CANCELLED cũ thiếu chứng cứ công bố được giữ riêng.
 
 ## ERD theo schema hiện có
 
@@ -121,7 +120,9 @@ history `(auction_id,created_at DESC,id)`, sessions `(expires_at)`.
 
 - MEMBER là seller/bidder theo hành vi; ADMIN chỉ được cấp qua seed/operator.
 - Owner sửa/xóa DRAFT; publish sang SCHEDULED khi start ở tương lai hoặc ACTIVE
-  khi bắt đầu ngay. SCHEDULED → ACTIVE → ENDED; catch-up phải xử lý phiên quá hạn.
+  khi start đã đến. Draft có thể lưu thời gian đã qua để chỉnh sau. Publish
+  yêu cầu end còn trong tương lai, đánh dấu `was_published` và tăng version
+  trong cùng transaction. SCHEDULED → ACTIVE → ENDED; catch-up xử lý phiên quá hạn.
 - Admin hủy DRAFT/SCHEDULED/ACTIVE với reason/audit; ENDED/CANCELLED là trạng thái cuối.
 - Giá integer VND dương trong signed BIGINT (`1..9223372036854775807`), payload
   string chữ số; không dùng Number để tính giá. Kiểm tra cả phép cộng bước giá.
@@ -134,10 +135,11 @@ history `(auction_id,created_at DESC,id)`, sessions `(expires_at)`.
 - Result không bid: winner/winning bid/final price cùng null. Countdown hết
   chưa đồng nghĩa result sẵn sàng; server chốt mới có kết quả.
 
-## Visibility đề xuất — chờ Bảo/Phú review trước BH-07/BH-09
+## Visibility dùng cho BH-07 và đề xuất cho các route tiếp theo
 
-Thiết kế nhóm mới chốt guest đọc public và owner sửa draft. Ma trận sau làm rõ
-đề xuất cho phần còn thiếu, chưa thay đổi endpoint/types hoặc được human duyệt.
+Thiết kế nhóm chốt guest đọc public và owner sửa draft. Nhánh MVP triển khai
+list/detail, socket join và `/me/auctions` theo ma trận. Quyền admin đọc phiên
+riêng và quy tắc cho các route bid/admin vẫn cần nhóm review.
 
 | Luồng | Guest / member khác | Owner | ADMIN |
 |---|---|---|---|
@@ -152,21 +154,20 @@ Payload public giữ seller `{id,displayName}` và history `bidderDisplayName`;
 không email, IP, password/token hash hay idempotency key. Auth trả email chỉ cho
 chính current user. Socket phải dùng cùng visibility với REST.
 
-**Blocker thiết kế:** schema chưa có dấu mốc published để phân biệt CANCELLED
-từ DRAFT và từ phiên public. Không dùng version/starts_at để đoán. Trước
-BH-03-A/BH-07 phải review lựa chọn thêm `published_at` bằng migration mới hoặc
-chốt visibility CANCELLED khác; phân đoạn này không tự thêm field.
+Dấu `was_published` là boolean vì dữ liệu cũ thiếu thời điểm công bố chính xác.
+Khi triển khai cancel, giữ dấu này và đánh dấu true khi trạng thái trước hủy
+là SCHEDULED/ACTIVE. Không suy từ version hoặc starts_at.
 
 ## Quyết định mở và hạn chốt
 
 | Quyết định | Người cần review | Hạn / phần bị chặn |
 |---|---|---|
-| Visibility ở trên, published marker, ADMIN đọc draft | Bảo + Phú + Đạt | Trước schema bổ sung/read API BH-03-A/BH-07 |
-| Sort whitelist/default ổn định và payload list item | Phú + Đạt, Bảo types | Trước BH-07-A; fixture detail không tự coi là list item |
-| Anonymous CSRF bootstrap, cookie/session expiry/hash, input/rate limits | Bảo + Phú + Đạt | Trước BH-04; auth hiện vẫn planned |
-| Publish thời gian đã qua, publish lặp, writable fields | Phú + Đạt | Trước BH-09 |
+| Visibility, `was_published`, ADMIN đọc draft | Bảo + Phú + Đạt | Review chính sách của nhánh MVP trước tích hợp |
+| Sort và payload list item | Phú + Đạt, Bảo types | Review payload nhánh MVP với frontend |
+| CSRF bootstrap, cookie/session expiry/hash, input/rate limits | Bảo + Phú + Đạt | Review chính sách auth của nhánh MVP |
+| Publish thời gian đã qua, publish lặp, writable fields | Phú + Đạt | Review chính sách draft/publish của nhánh MVP |
 | Replay snapshot ban đầu hay mới nhất; lock order bid/disable/cancel | Bảo + Đạt, Phú consumer | Trước BH-11; key/bidId semantics giữ contract hiện có |
 | Activate/close committed interface, cancelled result response, last-admin guard | Bảo + Phú + Đạt | Trước BH-14/BH-15 |
 
-BH-02-A bàn giao đề xuất và ví dụ để review. Chưa có phản hồi của Bảo/Phú;
-không đánh dấu BH-02 toàn nhóm Done hoặc cho phép code phụ thuộc quyết định mở.
+BH-02-A bàn giao đề xuất và ví dụ để review. Nhánh MVP ghi các lựa chọn đã
+triển khai để Bảo, Phú và Đạt đối chiếu khi tích hợp.
