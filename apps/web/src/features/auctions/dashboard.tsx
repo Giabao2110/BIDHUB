@@ -67,9 +67,19 @@ export function Dashboard() {
             published auctions.
           </p>
         </div>
-        <Link className="button" to="/auctions/new">
-          + Create auction
-        </Link>
+        <div className="action-row">
+          <Link className="button" to="/auctions/new">
+            + Create auction
+          </Link>
+          <Link className="button secondary" to="/dashboard/bids">
+            My bids
+          </Link>
+          {auth.user?.role === "ADMIN" && (
+            <Link className="button secondary" to="/admin">
+              Moderation
+            </Link>
+          )}
+        </div>
       </div>
       {params.get("notice") === "saved" && (
         <p className="notice" role="status">

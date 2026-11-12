@@ -32,9 +32,31 @@ export function adminRouter(db: Pool, browser: BrowserSession, publish: (auction
   router.use(browser.requireUser, (_req, res, next) => {
     if ((res.locals.user as SessionUser).role !== 'ADMIN') throw forbidden();
     next();
-  }, browser.requireCsrf);
+  });
 
-  router.post('/auctions/:id/cancel', async (req, res) => {
+  router.get('/auctions', async (req, res) => {
+    const query = req.query.q;
+    if (typeof query !== 'string' || !query.trim() || query.length > 160 || query.includes('\0')) {
+      throw new HttpProblem(422, 'INVALID_QUERY', 'Enter an auction title or ID');
+    }
+    const { rows } = await db.query(`SELECT id,title,status FROM auctions
+      WHERE strpos(lower(title),lower($1))>0 OR id::text=lower($1)
+      ORDER BY created_at DESC,id LIMIT 21`, [query.trim()]);
+    res.json({ items: rows.slice(0, 20), truncated: rows.length > 20 });
+  });
+
+  // Keep the exact email out of the URL and proxy access logs.
+  router.post('/users/lookup', browser.requireCsrf, async (req, res) => {
+    const email = req.body?.email;
+    if (typeof email !== 'string' || !email.trim() || email.length > 254 || email.includes('\0')) {
+      throw new HttpProblem(422, 'INVALID_QUERY', 'Enter the account email');
+    }
+    const { rows } = await db.query(`SELECT id,email,display_name AS "displayName",role,disabled_at IS NOT NULL AS disabled
+      FROM users WHERE email=$1`, [email.trim().toLowerCase()]);
+    res.json({ items: rows });
+  });
+
+  router.post('/auctions/:id/cancel', browser.requireCsrf, async (req, res) => {
     const id = entityId(req.params.id);
     const reason = reasonFrom(req.body?.reason);
     const actorId = (res.locals.user as SessionUser).id;
@@ -57,7 +79,7 @@ export function adminRouter(db: Pool, browser: BrowserSession, publish: (auction
     res.json({ auction });
   });
 
-  router.patch('/users/:id', async (req, res) => {
+  router.patch('/users/:id', browser.requireCsrf, async (req, res) => {
     const id = entityId(req.params.id);
     const actorId = (res.locals.user as SessionUser).id;
     const reason = reasonFrom(req.body?.reason);

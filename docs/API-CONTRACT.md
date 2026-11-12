@@ -41,6 +41,8 @@ packages/contracts. Thay đổi contract phải có PR và reviewer từ phía d
 
 ## Admin — Đạt backend, Phú giao diện
 
+- GET `/admin/auctions?q=...`: session ADMIN; tìm theo tiêu đề hoặc UUID, trả tối đa 20 `{id,title,status}` cùng `truncated`. Có thể tìm phiên riêng để xử lý kiểm duyệt; không trả nội dung riêng hoặc thông tin seller.
+- POST `/admin/users/lookup`: session ADMIN + CSRF, body `{email}`; tìm đúng email chuẩn hóa, trả `{items:[{id,email,displayName,role,disabled}]}`. Không đổi dữ liệu. Email đi trong body để không nằm trong URL/access log; cả hai lookup dùng `Cache-Control: no-store`.
 - POST `/admin/auctions/:id/cancel`: session ADMIN + CSRF + `{reason}`; 200 `{auction}` sau khi cập nhật status/version và audit trong cùng transaction. Chỉ phát sự kiện sau commit nếu phiên đã công khai. ENDED/CANCELLED trả 409 `AUCTION_TERMINAL`.
 - PATCH `/admin/users/:id`: session ADMIN + CSRF + `{disabled:boolean,reason}`; 200 `{user:{id,disabled}}`, revoke sessions khi disable, audit khi trạng thái đổi. Giữ ít nhất một admin đang hoạt động (`LAST_ADMIN`, 409).
 

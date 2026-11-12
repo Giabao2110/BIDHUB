@@ -123,7 +123,9 @@ export function useAuth() {
 export function safeReturnTo(value: string | null) {
   if (
     !value ||
-    !/^\/(?:dashboard|auctions(?:\/[^?#]*)?)(?:\?[^#]*)?$/.test(value) ||
+    !/^\/(?:dashboard(?:\/bids)?|admin|auctions(?:\/[^?#]*)?)(?:\?[^#]*)?$/.test(
+      value,
+    ) ||
     value.includes("\\")
   )
     return "/dashboard";
