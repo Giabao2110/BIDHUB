@@ -13,6 +13,7 @@ import { formatDate, formatMoney } from "../../lib/format";
 import { ApiRequestError } from "../../lib/api-client";
 import { useAuth } from "../auth/session";
 import { useAuctionDetail } from "./use-auction-detail";
+import { AuctionBids } from "./auction-bids";
 export function AuctionList() {
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get("query") ?? "");
@@ -225,18 +226,16 @@ export function AuctionDetail() {
                 Edit draft
               </Link>
             )}
-          <button className="button full" disabled>
-            Bidding coming soon
-          </button>
+          <AuctionBids
+            key={`${id}:${auth.user?.id ?? "guest"}`}
+            auction={item.auction}
+            sellerId={item.seller.id}
+            userId={auth.user?.id}
+            refresh={() => void detail.refetch()}
+          />
           {liveStatus && (
             <p className="helper" role="status">
               {liveStatus}
-            </p>
-          )}
-          {item.auction.status === "ENDED" && (
-            <p className="notice">
-              This auction has ended. The server will confirm the result; the
-              countdown does not determine the winner.
             </p>
           )}
           {item.auction.status === "CANCELLED" && (

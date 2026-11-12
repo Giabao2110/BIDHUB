@@ -687,6 +687,15 @@ svg {
 .bid-panel > .muted {
   font-size: 12px;
 }
+.bid-form {
+  display: grid;
+  gap: 0.5rem;
+  margin-block: 1rem;
+}
+.bid-form input {
+  min-width: 0;
+  width: 100%;
+}
 .detail-price {
   display: flex;
   flex-direction: column;
