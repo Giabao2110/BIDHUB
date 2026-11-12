@@ -54,6 +54,15 @@ try {
   await buyerPage.getByRole('heading', { name: title, exact: true, level: 1 }).waitFor();
   await buyerPage.getByText('Live updates connected.', { exact: true }).waitFor();
 
+  let sellerSocket;
+  let rejectSellerSocket = false;
+  await page.routeWebSocket(url => url.pathname === '/socket.io/', async socket => {
+    if (rejectSellerSocket) {
+      await socket.close({ code: 4001, reason: 'CI network interruption' });
+      return;
+    }
+    sellerSocket = { browser: socket, upstream: socket.connectToServer() };
+  });
   await page.goto(`/auctions/${id}`);
   await page.getByText('Live updates connected.', { exact: true }).waitFor();
   await buyerPage.goto(`/register?returnTo=${encodeURIComponent(`/auctions/${id}`)}`);
@@ -83,6 +92,7 @@ try {
   assert.equal(attempts.length, 2);
   assert.ok(attempts[0].key);
   assert.deepEqual(attempts, [{ key: attempts[0].key, status: 201 }, { key: attempts[0].key, status: 200 }]);
+  await buyerPage.unroute(`${origin.origin}${path}/bids`);
   const history = await (await visitor.request.get(`${path}/bids`)).json();
   assert.equal(history.total, 1);
   assert.equal(history.items[0].amountVnd, '1700000');
@@ -94,6 +104,26 @@ try {
   assert.equal(await buyerPage.locator('.dashboard-row').count(), 1);
   await buyerPage.goto('/admin');
   await buyerPage.getByRole('heading', { name: 'Administrator access required' }).waitFor();
+
+  // Only interrupt the seller transport. REST and the buyer's connection still use the real app.
+  assert.ok(sellerSocket);
+  rejectSellerSocket = true;
+  const interrupted = sellerSocket;
+  await Promise.all([
+    interrupted.browser.close({ code: 4001, reason: 'CI network interruption' }),
+    interrupted.upstream.close({ code: 4001, reason: 'CI network interruption' }),
+  ]);
+  const polling = page.getByText('Live updates unavailable. Refreshing every 15 seconds.', { exact: true });
+  await polling.waitFor();
+  await buyerPage.goto(`/auctions/${id}`);
+  await buyerPage.getByLabel('Bid amount (VND)').fill('1800000');
+  await buyerPage.getByRole('button', { name: 'Place bid', exact: true }).click();
+  await buyerPage.getByRole('status').filter({ hasText: 'Bid accepted.' }).waitFor();
+  await page.locator('.detail-price strong').filter({ hasText: '1,800,000 VND' }).waitFor({ timeout: 24_000 });
+  assert.equal(await polling.isVisible(), true, 'seller must see the new price before WebSocket recovery');
+  rejectSellerSocket = false;
+  await page.getByText('Live updates connected.', { exact: true }).waitFor({ timeout: 15_000 });
+  assert.notEqual(sellerSocket, interrupted);
 
   const admin = await browser.newContext({ baseURL: origin.origin, viewport: { width: 390, height: 844 } });
   const adminPage = await admin.newPage();
@@ -128,5 +158,5 @@ try {
   await page.goto('/auctions/d3000000-0000-4000-8000-000000000106');
   await page.getByText('No winning bid.', { exact: true }).waitFor();
 
-  console.log('Browser auction smoke passed: publish, idempotent UI bid, realtime price/cancellation, personal bids, moderation and sold/unsold results');
+  console.log('Browser auction smoke passed: publish, idempotent UI bid, realtime price/cancellation, REST fallback and room rejoin, personal bids, moderation and sold/unsold results');
 } finally { await browser.close(); }
