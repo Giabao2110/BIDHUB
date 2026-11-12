@@ -11,7 +11,8 @@ import { browserSession } from './modules/auth/browser-session.js';
 import { authRouter } from './modules/auth/routes.js';
 import { auctionsRouter, myAuctionsRouter } from './modules/auctions/routes.js';
 import { apiError, HttpProblem } from './http/error.js';
-import { bidsRouter } from './modules/bids/routes.js';
+import { bidsRouter, myBidsRouter } from './modules/bids/routes.js';
+import { adminRouter } from './modules/admin/routes.js';
 import type { PublicAuctionSnapshot } from './realtime/publisher.js';
 
 export function createApp(publish: (auction: PublicAuctionSnapshot) => void = () => {}) {
@@ -45,6 +46,8 @@ export function createApp(publish: (auction: PublicAuctionSnapshot) => void = ()
   app.use('/api/v1/auctions', auctionsRouter(pool, browser));
   app.use('/api/v1/auctions', bidsRouter(pool, browser, publish));
   app.use('/api/v1/me/auctions', myAuctionsRouter(pool, browser));
+  app.use('/api/v1/me/bids', myBidsRouter(pool, browser));
+  app.use('/api/v1/admin', adminRouter(pool, browser, publish));
   app.use((_req, res) => res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found', requestId: res.locals.requestId } }));
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     if (err instanceof HttpProblem) return apiError(res, err.status, err.code, err.message);
