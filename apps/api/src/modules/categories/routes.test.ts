@@ -22,7 +22,8 @@ test('public category HTTP endpoint returns only contract fields in stable order
   url.searchParams.set('options', `-c search_path=${schema}`);
   const previousUrl = process.env.DATABASE_URL;
   process.env.DATABASE_URL = url.toString();
-  const { app } = await import('../../app.js');
+  const { createApp } = await import('../../app.js');
+  const app = createApp();
   const { pool } = await import('../../database/pool.js');
   t.after(async () => {
     await pool.end();

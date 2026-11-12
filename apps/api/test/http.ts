@@ -4,8 +4,9 @@ import { createServer } from 'node:http';
 import type { TestContext } from 'node:test';
 import pg from 'pg';
 import { runMigrations } from '../src/database/migrations.js';
+import type { PublicAuctionSnapshot } from '../src/realtime/publisher.js';
 
-export async function startTestApi(t: TestContext, webOrigin = 'http://localhost:5173') {
+export async function startTestApi(t: TestContext, webOrigin = 'http://localhost:5173', publish?: (auction: PublicAuctionSnapshot) => void) {
   const connectionString = process.env.TEST_DATABASE_URL;
   if (!connectionString) throw new Error('TEST_DATABASE_URL is required; use a dedicated PostgreSQL test database.');
 
@@ -28,10 +29,10 @@ export async function startTestApi(t: TestContext, webOrigin = 'http://localhost
   process.env.DATABASE_URL = url.toString();
   process.env.WEB_ORIGIN = webOrigin;
   delete process.env.TRUST_WEB_PROXY;
-  const { app } = await import('../src/app.js');
+  const { createApp } = await import('../src/app.js');
   const { pool } = await import('../src/database/pool.js');
   t.after(() => pool.end());
-  const server = createServer(app);
+  const server = createServer(createApp(publish));
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
     server.listen(0, '127.0.0.1', resolve);
