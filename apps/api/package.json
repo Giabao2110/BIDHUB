@@ -15,7 +15,8 @@
     "test:auth-db": "node --import tsx --test src/modules/auth/sessions.test.ts src/modules/auth/routes.test.ts",
     "test:categories-db": "node --import tsx --test src/modules/categories/routes.test.ts",
     "test:auctions-db": "node --import tsx --test src/modules/auctions/read.test.ts src/modules/auctions/write.test.ts",
-    "test:bids-db": "node --import tsx --test src/modules/bids/bid-service.test.ts src/modules/bids/routes.test.ts"
+    "test:bids-db": "node --import tsx --test src/modules/bids/bid-service.test.ts src/modules/bids/routes.test.ts",
+    "test:admin-db": "node --import tsx --test src/modules/admin/routes.test.ts"
   },
   "dependencies": {
     "@prometheus-io/client": "^0.16.1",

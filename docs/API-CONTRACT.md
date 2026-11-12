@@ -28,7 +28,7 @@ packages/contracts. Thay đổi contract phải có PR và reviewer từ phía d
 - DELETE `/auctions/:id`: session và CSRF, owner, draft only; hard delete draft và trả 204.
 - POST `/auctions/:id/publish`: session và CSRF, owner, draft only; 200 `{auction}` ACTIVE nếu đã đến giờ bắt đầu, SCHEDULED nếu start trong tương lai. Dựa vào đồng hồ DB sau khi khóa row. Hết hạn trả 422 `INVALID_AUCTION_TIME`; publish lặp trả 409 `AUCTION_NOT_DRAFT`.
 - GET `/me/auctions`: `{items,total,page,pageSize}` với cùng shape detail, lọc theo user từ session và gồm cả phiên riêng. Các tham số lọc/sort/phân trang giống list public. Guest nhận 401.
-- GET `/me/bids`: lịch sử cá nhân + trạng thái các phiên, paginate.
+- GET `/me/bids`: session, `{items:[{id,amountVnd,createdAt,auctionId,auctionTitle,auctionStatus}],total,page,pageSize}`. Chỉ trả bid của user từ session.
 - GET `/auctions/:id/result`: ENDED -> 200 `{auctionId,winner:{id,displayName}|null,finalPriceVnd:null|string,closedAt}`; chưa kết thúc 409 `RESULT_NOT_READY`; phiên công khai bị hủy trả 409 `AUCTION_CANCELLED`.
 
 ## Bids — Đạt chủ nghiệp vụ, Bảo reviewer concurrency
@@ -41,8 +41,8 @@ packages/contracts. Thay đổi contract phải có PR và reviewer từ phía d
 
 ## Admin — Đạt backend, Phú giao diện
 
-- POST `/admin/auctions/:id/cancel`: ADMIN + `{reason}`; cập nhật status/version và audit log; emit trạng thái mới sau commit. ENDED không hủy ngược.
-- PATCH `/admin/users/:id`: ADMIN + `{disabled:boolean,reason}`; revoke sessions khi disable, audit log; không cho tự disable admin cuối cùng.
+- POST `/admin/auctions/:id/cancel`: session ADMIN + CSRF + `{reason}`; 200 `{auction}` sau khi cập nhật status/version và audit trong cùng transaction. Chỉ phát sự kiện sau commit nếu phiên đã công khai. ENDED/CANCELLED trả 409 `AUCTION_TERMINAL`.
+- PATCH `/admin/users/:id`: session ADMIN + CSRF + `{disabled:boolean,reason}`; 200 `{user:{id,disabled}}`, revoke sessions khi disable, audit khi trạng thái đổi. Giữ ít nhất một admin đang hoạt động (`LAST_ADMIN`, 409).
 
 ## Socket — Bảo server, Phú client
 
