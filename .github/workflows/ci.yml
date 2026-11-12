@@ -95,6 +95,13 @@ jobs:
           name: auction-read-lab
           path: auction-read-lab.json
           if-no-files-found: error
+      - name: Verify loopback HTTPS and WSS through the host Nginx template
+        env:
+          DB_PASSWORD: ci_compose_only
+          DATABASE_URL: postgres://bidhub:ci_compose_only@db:5432/bidhub
+          WEB_ORIGIN: https://localhost
+          BIDHUB_ALLOW_AUTH_SMOKE_WRITE: '1'
+        run: bash scripts/smoke-loopback-tls.sh
       - name: Container logs and cleanup
         if: always()
         env:
