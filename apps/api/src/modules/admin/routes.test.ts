@@ -24,6 +24,17 @@ test('admin cancels under the bid lock, audits actions, revokes sessions and pre
   [seller.id, category, status, status !== 'DRAFT'])).rows[0].id as string;
   const id = await makeAuction('ACTIVE');
   const draft = await makeAuction('DRAFT');
+  const search = '/admin/auctions?q=Moderation';
+  await expectError(await request(search), 401, 'UNAUTHENTICATED');
+  await expectError(await bidder.session.send(search), 403, 'FORBIDDEN');
+  const matches = await admin.session.send(search);
+  assert.equal(matches.headers.get('cache-control'), 'no-store');
+  assert.deepEqual((await matches.json()).items.map((item: { id: string }) => item.id).sort(), [id, draft].sort());
+  const { rows: [{ email }] } = await db.query('SELECT email FROM users WHERE id=$1', [bidder.id]);
+  const userLookup = '/admin/users/lookup';
+  await expectError(await bidder.session.write(userLookup, 'POST', { email }), 403, 'FORBIDDEN');
+  await expectError(await admin.session.send(userLookup, { method: 'POST' }), 403, 'INVALID_CSRF');
+  assert.deepEqual(await (await admin.session.write(userLookup, 'POST', { email: email.toUpperCase() })).json(), { items: [{ id: bidder.id, email, displayName: 'Fixture bidder', role: 'MEMBER', disabled: false }] });
   const cancel = (id: string) => `/admin/auctions/${id}/cancel`;
   const bid = `/auctions/${id}/bids`;
   const bidderToken = await bidder.session.csrf();
