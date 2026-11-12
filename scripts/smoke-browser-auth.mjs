@@ -8,7 +8,12 @@ const origin = new URL(process.env.WEB_ORIGIN ?? 'http://localhost:8080');
 if (!['localhost', '127.0.0.1'].includes(origin.hostname)) throw new Error('Auth smoke requires a loopback endpoint');
 const email = `ci-auth-${randomUUID()}@example.invalid`;
 const password = randomUUID();
-const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+const spki = process.env.BIDHUB_TLS_SMOKE_SPKI;
+const browser = await chromium.launch({
+  channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
+  // Only trust the disposable lab key. Keep certificate checks for other keys.
+  args: spki ? [`--ignore-certificate-errors-spki-list=${spki}`] : [],
+});
 try {
   const page = await browser.newPage();
   await page.goto(origin.origin, { timeout: 10_000 });
@@ -38,5 +43,16 @@ try {
       sameMember: Boolean(firstUser && firstUser.id === secondUser?.id && firstUser.email === email && firstUser.role === 'MEMBER') };
   }, { email, password });
   assert.deepEqual(result, { denied: 403, registered: 201, me: 200, logout: 204, revoked: 401, login: 200, restored: 200, sameMember: true });
+  if (origin.protocol === 'https:') {
+    const cookies = await page.context().cookies(origin.origin);
+    for (const name of ['__Host-bidhub_session', '__Host-bidhub_csrf']) {
+      const cookie = cookies.find(entry => entry.name === name);
+      assert.ok(cookie, `missing ${name}`);
+      assert.ok(cookie.secure && cookie.httpOnly);
+      assert.equal(cookie.sameSite, 'Lax');
+      assert.equal(cookie.path, '/');
+    }
+    console.log('Browser HTTPS smoke passed: secure host-prefixed session and CSRF cookies');
+  }
   console.log('Browser auth smoke passed: CSRF denial, register, session, logout and login');
 } finally { await browser.close(); }
