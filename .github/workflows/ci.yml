@@ -80,6 +80,21 @@ jobs:
           docker compose -f infra/compose.app.yaml -f infra/compose.monitoring.yaml up -d prometheus grafana
           docker compose -f infra/compose.app.yaml -f infra/compose.monitoring.yaml exec -T prometheus promtool check config /etc/prometheus/prometheus.yml
           node scripts/smoke-monitoring.mjs
+      - name: Capture auction read lab evidence
+        env:
+          DB_PASSWORD: ci_compose_only
+          DATABASE_URL: postgres://bidhub:ci_compose_only@db:5432/bidhub
+          WEB_ORIGIN: http://localhost:8080
+        run: |
+          set -o pipefail
+          pg_version="$(docker compose -f infra/compose.app.yaml exec -T db psql -U bidhub -d bidhub -Atc 'SHOW server_version')"
+          docker compose -f infra/compose.app.yaml exec -T -e LAB_SHA="$(git rev-parse HEAD)" -e LAB_POSTGRES_VERSION="$pg_version" api node --input-type=module < scripts/load-auctions.mjs | tee auction-read-lab.json
+      - name: Upload auction read lab evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: auction-read-lab
+          path: auction-read-lab.json
+          if-no-files-found: error
       - name: Container logs and cleanup
         if: always()
         env:
