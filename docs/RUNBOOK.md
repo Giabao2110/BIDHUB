@@ -32,6 +32,10 @@ See root README to start web/API/database. Liveness checks process; readiness ch
 - HTTPS/WSS through Nginx; refresh nested frontend URL succeeds; database port inaccessible publicly; frontend JS has no secret.
 - Phone viewport: list/detail/forms usable; loading/error/empty and keyboard labels visible.
 
+## CI lab evidence
+
+CI publishes a `auction-read-lab` JSON artifact when the lab run succeeds. It records the checkout SHA, 50 workers, 500 PostgreSQL-backed auction-list reads, successful-response p50/p95, outcomes, and API process CPU/RSS before and after. The read load goes directly to the API inside Compose; the separate browser smoke still goes through Nginx. The measurements do not represent Nginx's rate-limited public capacity, bid contention, or a production service-level guarantee. Record the observed numbers and target outcome, not the target as an achievement.
+
 ## Demo script (8–10 minutes)
 
 1. Phú (2 min): home/search/detail and seller flow.
