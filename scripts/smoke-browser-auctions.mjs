@@ -54,31 +54,35 @@ try {
 
   await page.goto(`/auctions/${id}`);
   await page.getByText('Live updates connected.', { exact: true }).waitFor();
-  const result = await buyerPage.evaluate(async ({ id, key, token }) => {
-    const getCsrf = async () => {
-      const response = await fetch('/api/v1/auth/csrf');
-      if (!response.ok) throw new Error(`CSRF failed: ${response.status}`);
-      return (await response.json()).csrfToken;
-    };
-    const register = await fetch('/api/v1/auth/register', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': await getCsrf() },
-      body: JSON.stringify({ email: `bid-${token}@example.invalid`, password: token, displayName: 'CI browser bidder' }),
-    });
-    if (!register.ok) throw new Error(`Bidder registration failed: ${register.status}`);
-    const path = `/api/v1/auctions/${id}/bids`;
-    const csrf = await getCsrf();
-    const bid = () => fetch(path, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf, 'Idempotency-Key': key },
-      body: JSON.stringify({ amountVnd: '1700000' }),
-    });
-    const first = await bid();
-    const retry = await bid();
-    const history = await (await fetch(path)).json();
-    const firstBid = await first.json();
-    const retriedBid = await retry.json();
-    return { first: first.status, retry: retry.status, sameBid: Boolean(firstBid.bidId && firstBid.bidId === retriedBid.bidId), total: history.total };
-  }, { id, key: randomUUID(), token: randomUUID() });
-  assert.deepEqual(result, { first: 201, retry: 200, sameBid: true, total: 1 });
+  await buyerPage.goto(`/register?returnTo=${encodeURIComponent(`/auctions/${id}`)}`);
+  const bidToken = randomUUID();
+  await buyerPage.getByLabel('Display name', { exact: true }).fill('CI browser bidder');
+  await buyerPage.getByLabel('Email', { exact: true }).fill(`bid-${bidToken}@example.invalid`);
+  await buyerPage.getByLabel('Password', { exact: true }).fill(bidToken);
+  await buyerPage.getByLabel('Confirm password', { exact: true }).fill(bidToken);
+  await buyerPage.getByRole('button', { name: 'Create account', exact: true }).click();
+  await buyerPage.waitForURL(`**/auctions/${id}`);
+
+  const attempts = [];
+  await buyerPage.route(`${origin.origin}${path}/bids`, async route => {
+    if (route.request().method() !== 'POST') return route.continue();
+    const response = await route.fetch();
+    attempts.push({ key: route.request().headers()['idempotency-key'], status: response.status() });
+    // Commit the first bid on the real server, but lose its response at the browser.
+    if (attempts.length === 1) return route.abort();
+    await route.fulfill({ response });
+  });
+  await buyerPage.getByLabel('Bid amount (VND)').fill('1700000');
+  await buyerPage.getByRole('button', { name: 'Place bid', exact: true }).click();
+  await buyerPage.getByRole('alert').filter({ hasText: 'Bid could not be confirmed' }).waitFor();
   await page.locator('.detail-price strong').filter({ hasText: '1,700,000 VND' }).waitFor();
+  await buyerPage.getByRole('button', { name: 'Retry same bid', exact: true }).click();
+  await buyerPage.getByRole('status').filter({ hasText: 'Bid accepted.' }).waitFor();
+  assert.equal(attempts.length, 2);
+  assert.ok(attempts[0].key);
+  assert.deepEqual(attempts, [{ key: attempts[0].key, status: 201 }, { key: attempts[0].key, status: 200 }]);
+  const history = await (await visitor.request.get(`${path}/bids`)).json();
+  assert.equal(history.total, 1);
+  assert.equal(history.items[0].amountVnd, '1700000');
   console.log('Browser auction smoke passed: draft visibility, publish, public room, bid retry, realtime price in the seller context');
 } finally { await browser.close(); }

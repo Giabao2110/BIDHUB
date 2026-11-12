@@ -80,13 +80,16 @@ export async function apiWrite<T>(
   path: string,
   method: "POST" | "PATCH" | "DELETE",
   body?: unknown,
+  options: Pick<RequestInit, "headers" | "signal"> = {},
 ): Promise<T> {
   const { csrfToken } = await apiRequest<{ csrfToken: string }>("/auth/csrf", {
     cache: "no-store",
+    signal: options.signal,
   });
   if (!csrfToken)
     throw new ApiRequestError(502, "INVALID_RESPONSE", "Missing CSRF token.");
   return apiRequest<T>(path, {
+    ...options,
     method,
     csrfToken,
     body: body === undefined ? undefined : JSON.stringify(body),
