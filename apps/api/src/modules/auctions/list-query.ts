@@ -19,6 +19,13 @@ function pageNumber(value: string, defaultValue: number, max: number) {
   return Number(value);
 }
 
+export function pagination(query: Request['query']) {
+  return {
+    page: pageNumber(parameter(query, 'page'), 1, 2_147_483_647),
+    pageSize: pageNumber(parameter(query, 'pageSize'), 20, 50),
+  };
+}
+
 export function auctionListQuery(query: Request['query']) {
   const term = parameter(query, 'query').trim();
   const categoryId = parameter(query, 'categoryId');
@@ -33,8 +40,7 @@ export function auctionListQuery(query: Request['query']) {
     categoryId: categoryId || null,
     status: status || null,
     sort,
-    page: pageNumber(parameter(query, 'page'), 1, 2_147_483_647),
-    pageSize: pageNumber(parameter(query, 'pageSize'), 20, 50),
+    ...pagination(query),
   } as const;
 }
 

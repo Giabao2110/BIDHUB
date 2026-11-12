@@ -51,5 +51,34 @@ try {
   await buyerPage.getByRole('link', { name: title, exact: true }).click();
   await buyerPage.getByRole('heading', { name: title, exact: true, level: 1 }).waitFor();
   await buyerPage.getByText('Live updates connected.', { exact: true }).waitFor();
-  console.log('Browser auction smoke passed: seller draft, guest denial, publish, public discovery and room join');
+
+  await page.goto(`/auctions/${id}`);
+  await page.getByText('Live updates connected.', { exact: true }).waitFor();
+  const result = await buyerPage.evaluate(async ({ id, key, token }) => {
+    const getCsrf = async () => {
+      const response = await fetch('/api/v1/auth/csrf');
+      if (!response.ok) throw new Error(`CSRF failed: ${response.status}`);
+      return (await response.json()).csrfToken;
+    };
+    const register = await fetch('/api/v1/auth/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': await getCsrf() },
+      body: JSON.stringify({ email: `bid-${token}@example.invalid`, password: token, displayName: 'CI browser bidder' }),
+    });
+    if (!register.ok) throw new Error(`Bidder registration failed: ${register.status}`);
+    const path = `/api/v1/auctions/${id}/bids`;
+    const csrf = await getCsrf();
+    const bid = () => fetch(path, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf, 'Idempotency-Key': key },
+      body: JSON.stringify({ amountVnd: '1700000' }),
+    });
+    const first = await bid();
+    const retry = await bid();
+    const history = await (await fetch(path)).json();
+    const firstBid = await first.json();
+    const retriedBid = await retry.json();
+    return { first: first.status, retry: retry.status, sameBid: Boolean(firstBid.bidId && firstBid.bidId === retriedBid.bidId), total: history.total };
+  }, { id, key: randomUUID(), token: randomUUID() });
+  assert.deepEqual(result, { first: 201, retry: 200, sameBid: true, total: 1 });
+  await page.locator('.detail-price strong').filter({ hasText: '1,700,000 VND' }).waitFor();
+  console.log('Browser auction smoke passed: draft visibility, publish, public room, bid retry, realtime price in the seller context');
 } finally { await browser.close(); }
