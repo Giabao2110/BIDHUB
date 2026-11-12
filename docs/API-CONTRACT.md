@@ -4,8 +4,8 @@
 
 Prefix `/api/v1`; JSON; ID UUID; tiền VND chuỗi integer (`"150000"`), không float; ngày ISO 8601 UTC; trang mặc định 1, pageSize 20, tối đa 50. Response lỗi `{ "error": { "code": "BID_TOO_LOW", "message": "...", "requestId": "..." } }`. Frontend xử lý code, không phụ thuộc chuỗi message.
 
-Hai health endpoint, auth và GET `/categories` đã có. Các route còn lại trong
-backlog. Đạt và Phú chốt payload từng route, Bảo cập nhật types tại
+Hai health endpoint, auth, categories, auction list/detail, my auctions và
+draft/publish đã có. Đạt và Phú chốt payload từng route, Bảo cập nhật types tại
 packages/contracts. Thay đổi contract phải có PR và reviewer từ phía dùng API.
 
 ## Auth — Đạt implement, Phú tích hợp
@@ -21,13 +21,13 @@ packages/contracts. Thay đổi contract phải có PR và reviewer từ phía d
 - GET `/categories`: `{items:[{id,slug,name}]}`. Implemented public read endpoint;
   thứ tự ổn định theo slug rồi ID, database chưa có danh mục trả `{items:[]}`.
   Query parameters không hỗ trợ được bỏ qua; chưa có category write endpoint.
-- GET `/auctions?query=&categoryId=&status=ACTIVE&page=1&pageSize=20`: `{items,total,page,pageSize}`; whitelist sort, không ghép input thành SQL.
-- GET `/auctions/:id`: `{auction: AuctionSnapshot, description, imageUrl, seller:{id,displayName}, category:{id,name}}`. Không trả email seller.
-- POST `/auctions`: auth; `{title,description,categoryId,imageUrl,openingPriceVnd,minimumIncrementVnd,startsAt,endsAt}`; 201 `{auction}` trạng thái DRAFT.
-- PATCH `/auctions/:id`: owner, draft only, 200 `{auction}`; 403 không là owner, 409 sai trạng thái.
-- DELETE `/auctions/:id`: owner, draft only; 204. Chưa có bid nên hard delete draft chấp nhận được; không xóa lịch sử auction đã công bố.
-- POST `/auctions/:id/publish`: owner; 200 `{auction}` ACTIVE/SCHEDULED, kiểm tra trường bắt buộc/thời gian.
-- GET `/me/auctions`: phiên do current user tạo; không nhận sellerId từ client.
+- GET `/auctions?query=&categoryId=&status=ACTIVE&page=1&pageSize=20`: `{items,total,page,pageSize}`. Mỗi item có shape detail. Tìm chuỗi con theo title/description, không phân biệt hoa thường. Sort `newest` mặc định (createdAt giảm dần) hoặc `endingSoon` (endsAt tăng dần), dùng ID để phá hòa. Filter hoặc pagination sai trả 422 `INVALID_QUERY`.
+- GET `/auctions/:id`: `{auction: AuctionSnapshot, description, imageUrl, seller:{id,displayName}, category:{id,name}, startsAt, openingPriceVnd}`. Hai field metadata cuối hỗ trợ form chỉnh draft của Phú. `imageUrl` nullable. Public list/detail và socket chỉ mở SCHEDULED/ACTIVE/ENDED và CANCELLED có dấu đã công bố. Chủ sở hữu xem được phiên riêng qua detail; khách và tài khoản khác nhận 404, kể cả ADMIN.
+- POST `/auctions`: session và CSRF; `{title,description,categoryId,imageUrl,openingPriceVnd,minimumIncrementVnd,startsAt,endsAt}`; 201 `{auction}` trạng thái DRAFT. Title tối đa 160, description tối đa 10.000 ký tự. `imageUrl` là HTTPS hoặc null. Thời gian dùng UTC với hậu tố Z và tối đa ba chữ số phần giây; end phải sau start. Tiền dương trong signed BIGINT. Input hoặc category sai trả 422.
+- PATCH `/auctions/:id`: session và CSRF, owner, draft only; cập nhật một hoặc nhiều field của POST. 200 `{auction}`; 403 `FORBIDDEN` cho tài khoản khác, 409 `AUCTION_NOT_DRAFT` khi đã đổi trạng thái.
+- DELETE `/auctions/:id`: session và CSRF, owner, draft only; hard delete draft và trả 204.
+- POST `/auctions/:id/publish`: session và CSRF, owner, draft only; 200 `{auction}` ACTIVE nếu đã đến giờ bắt đầu, SCHEDULED nếu start trong tương lai. Dựa vào đồng hồ DB sau khi khóa row. Hết hạn trả 422 `INVALID_AUCTION_TIME`; publish lặp trả 409 `AUCTION_NOT_DRAFT`.
+- GET `/me/auctions`: `{items,total,page,pageSize}` với cùng shape detail, lọc theo user từ session và gồm cả phiên riêng. Các tham số lọc/sort/phân trang giống list public. Guest nhận 401.
 - GET `/me/bids`: lịch sử cá nhân + trạng thái các phiên, paginate.
 - GET `/auctions/:id/result`: ENDED -> 200 `{auctionId,winner:{id,displayName}|null,finalPriceVnd:null|string,closedAt}`; chưa kết thúc 409 `RESULT_NOT_READY`; CANCELLED trả trạng thái hủy rõ ràng.
 
@@ -67,6 +67,6 @@ vào `AuctionSnapshot`. `openingPriceVnd` và `startsAt` ở metadata scenario �
 đối chiếu rules, không tự thêm chúng vào response detail.
 
 `image_url` nullable trong SQL nên fixture detail dùng `imageUrl: null`.
-Visibility CANCELLED, quyền ADMIN đọc draft, payload list/sort, CSRF bootstrap
-và response result CANCELLED còn cần review ở các gate ghi trong DB-DOMAIN.
-Ví dụ không chốt các quyết định đó hoặc chứng minh route đã hoạt động.
+Fixtures là dữ liệu mock. Dùng `test:auth-db` và `test:auctions-db` để kiểm tra
+các route đã triển khai trên PostgreSQL riêng. Response result CANCELLED vẫn
+cần chốt trước khi triển khai.
