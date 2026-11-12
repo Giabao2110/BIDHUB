@@ -5,7 +5,7 @@
 Prefix `/api/v1`; JSON; ID UUID; tiền VND chuỗi integer (`"150000"`), không float; ngày ISO 8601 UTC; trang mặc định 1, pageSize 20, tối đa 50. Response lỗi `{ "error": { "code": "BID_TOO_LOW", "message": "...", "requestId": "..." } }`. Frontend xử lý code, không phụ thuộc chuỗi message.
 
 Hai health endpoint, auth, categories, auction list/detail, my auctions và
-draft/publish đã có. Đạt và Phú chốt payload từng route, Bảo cập nhật types tại
+draft/publish, đặt giá, lịch sử giá công khai và kết quả phiên đã có. Đạt và Phú chốt payload từng route, Bảo cập nhật types tại
 packages/contracts. Thay đổi contract phải có PR và reviewer từ phía dùng API.
 
 ## Auth — Đạt implement, Phú tích hợp
@@ -29,13 +29,14 @@ packages/contracts. Thay đổi contract phải có PR và reviewer từ phía d
 - POST `/auctions/:id/publish`: session và CSRF, owner, draft only; 200 `{auction}` ACTIVE nếu đã đến giờ bắt đầu, SCHEDULED nếu start trong tương lai. Dựa vào đồng hồ DB sau khi khóa row. Hết hạn trả 422 `INVALID_AUCTION_TIME`; publish lặp trả 409 `AUCTION_NOT_DRAFT`.
 - GET `/me/auctions`: `{items,total,page,pageSize}` với cùng shape detail, lọc theo user từ session và gồm cả phiên riêng. Các tham số lọc/sort/phân trang giống list public. Guest nhận 401.
 - GET `/me/bids`: lịch sử cá nhân + trạng thái các phiên, paginate.
-- GET `/auctions/:id/result`: ENDED -> 200 `{auctionId,winner:{id,displayName}|null,finalPriceVnd:null|string,closedAt}`; chưa kết thúc 409 `RESULT_NOT_READY`; CANCELLED trả trạng thái hủy rõ ràng.
+- GET `/auctions/:id/result`: ENDED -> 200 `{auctionId,winner:{id,displayName}|null,finalPriceVnd:null|string,closedAt}`; chưa kết thúc 409 `RESULT_NOT_READY`; phiên công khai bị hủy trả 409 `AUCTION_CANCELLED`.
 
 ## Bids — Đạt chủ nghiệp vụ, Bảo reviewer concurrency
 
 - POST `/auctions/:id/bids`: session + CSRF; header `Idempotency-Key: <uuid>`; body `{amountVnd}`; 201 `{auction,bidId}` nếu tạo mới, 200 khi trả lại request đã chấp nhận. User ID lấy session.
 - GET `/auctions/:id/bids?page=1&pageSize=20`: `{items:[{id,amountVnd,bidderDisplayName,createdAt}],total,page,pageSize}`. Không expose email/IP.
 - 401 `UNAUTHENTICATED`; 403 `SELF_BIDDING`/`ACCOUNT_DISABLED`; 404 `NOT_FOUND`; 409 `AUCTION_NOT_ACTIVE`/`BID_TOO_LOW`/`IDEMPOTENCY_CONFLICT`; 422 input không hợp lệ; 429 rate limit.
+- Cửa sổ giới hạn tại API: 30 lần/10 giây/tài khoản trên mỗi API process, 429 kèm `Retry-After`. Phiên chưa công khai trả 404 khi đọc lịch sử/kết quả hoặc đặt giá.
 - Client bị timeout không kết luận bid thất bại: resync snapshot/history và retry cùng key. Sau thành công hoặc lỗi nghiệp vụ kết thúc lần thử mới tạo key tiếp theo.
 
 ## Admin — Đạt backend, Phú giao diện

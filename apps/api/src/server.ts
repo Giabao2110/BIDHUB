@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
-import { app } from './app.js';
+import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { pool } from './database/pool.js';
 import { registerAuctionRooms } from './realtime/auction-rooms.js';
@@ -9,7 +9,7 @@ import { log } from './observability/logger.js';
 import { processAuctionLifecycle, startAuctionLifecycle } from './jobs/auction-lifecycle.js';
 import { metrics, metricsServer } from './observability/metrics.js';
 import { publicAuctionExists } from './modules/auctions/read.js';
-const server = createServer(app);
+const server = createServer(createApp(auction => publishAuctionUpdate(auction)));
 const webHost = new URL(env.webOrigin).host;
 const io = new Server(server, {
   cors: { origin: env.webOrigin }, maxHttpBufferSize: 4096,
