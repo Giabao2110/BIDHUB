@@ -174,4 +174,101 @@ test('admin cancels under the bid lock, audits actions, revokes sessions and pre
     await expectError(await target.session.send('/auth/me'), 401, 'UNAUTHENTICATED');
   });
 
+
+  const racer = await register('Race bidder');
+  const raceCsrf = await racer.session.csrf();
+  const adminCsrf = await admin.session.csrf();
+  const cancelRequest = (auctionId: string) => admin.session.send(cancel(auctionId), {
+    method: 'POST', headers: { 'X-CSRF-Token': adminCsrf },
+    body: JSON.stringify({ reason: 'Barrier cancellation' }),
+  });
+  const bidRequest = (auctionId: string) => racer.session.send(`/auctions/${auctionId}/bids`, {
+    method: 'POST', headers: { 'X-CSRF-Token': raceCsrf, 'Idempotency-Key': randomUUID() },
+    body: JSON.stringify({ amountVnd: '100' }),
+  });
+
+  for (const first of ['bid', 'cancel'] as const) {
+    await t.test(`${first} obtains the auction lock before its competitor`, async () => {
+      const auctionId = await makeAuction('ACTIVE');
+      const locker = await db.connect();
+      const pending: Promise<Response>[] = [];
+      try {
+        await locker.query('BEGIN');
+        await locker.query('SELECT id FROM auctions WHERE id=$1 FOR UPDATE', [auctionId]);
+        const { rows: [{ pid }] } = await locker.query('SELECT pg_backend_pid() AS pid');
+        async function waitForBlocked(expected: number) {
+          const deadline = Date.now() + 5000;
+          while (Date.now() < deadline) {
+            // Follow the blocker chain: the second request can wait on the
+            // first request's tuple lock instead of directly on this connection.
+            const { rows: [state] } = await db.query(`WITH RECURSIVE blocked(pid) AS (
+              SELECT pid FROM pg_stat_activity WHERE $1=ANY(pg_blocking_pids(pid))
+              UNION
+              SELECT a.pid FROM pg_stat_activity a JOIN blocked b ON b.pid=ANY(pg_blocking_pids(a.pid))
+            ) SELECT count(*)::integer AS waiting FROM blocked`, [pid]);
+            if (state.waiting === expected) return;
+            await setTimeout(10);
+          }
+          assert.fail(`Expected ${expected} requests in the auction lock queue`);
+        }
+        pending.push(first === 'bid' ? bidRequest(auctionId) : cancelRequest(auctionId));
+        await waitForBlocked(1);
+        pending.push(first === 'bid' ? cancelRequest(auctionId) : bidRequest(auctionId));
+        await waitForBlocked(2);
+        assert.equal(events.filter(e => e.id === auctionId).length, 0, 'No event before lock release/commit');
+        await locker.query('COMMIT');
+      } finally {
+        await locker.query('ROLLBACK');
+        locker.release();
+        await Promise.allSettled(pending);
+      }
+      const responses = await Promise.all(pending);
+      const acceptedBid = first === 'bid';
+      assert.equal(responses[0].status, acceptedBid ? 201 : 200);
+      await responses[0].json();
+      if (acceptedBid) {
+        assert.equal(responses[1].status, 200);
+        await responses[1].json();
+      } else await expectError(responses[1], 409, 'AUCTION_NOT_ACTIVE');
+      const { rows: [state] } = await db.query('SELECT status,version,current_price_vnd,highest_bidder_id FROM auctions WHERE id=$1', [auctionId]);
+      assert.deepEqual(state, { status: 'CANCELLED', version: acceptedBid ? 2 : 1,
+        current_price_vnd: '100', highest_bidder_id: acceptedBid ? racer.id : null });
+      assert.equal((await db.query('SELECT 1 FROM bids WHERE auction_id=$1', [auctionId])).rowCount, acceptedBid ? 1 : 0);
+      assert.equal((await db.query("SELECT 1 FROM audit_logs WHERE entity_id=$1 AND action='AUCTION_CANCELLED'", [auctionId])).rowCount, 1);
+      assert.equal((await db.query('SELECT 1 FROM auction_results WHERE auction_id=$1', [auctionId])).rowCount, 0);
+      const snapshots = events.filter(e => e.id === auctionId).sort((a,b) => a.version-b.version);
+      assert.deepEqual(snapshots.map(e => [e.status,e.version]), acceptedBid ? [['ACTIVE',1],['CANCELLED',2]] : [['CANCELLED',1]]);
+      await expectError(await bidRequest(auctionId), 409, 'AUCTION_NOT_ACTIVE');
+    });
+  }
+
+  await t.test('failed cancellation audit restores auction state and emits nothing; retry commits once', async () => {
+    const auctionId = await makeAuction('ACTIVE');
+    assert.equal((await bidRequest(auctionId)).status, 201);
+    const before = (await db.query('SELECT * FROM auctions WHERE id=$1', [auctionId])).rows;
+    const beforeBids = (await db.query('SELECT * FROM bids WHERE auction_id=$1', [auctionId])).rows;
+    const beforeEvents = [...events];
+    await db.query(`CREATE FUNCTION reject_cancel_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN RAISE EXCEPTION 'Injected cancel audit failure'; END $$`);
+    await db.query('CREATE TRIGGER reject_cancel_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION reject_cancel_audit()');
+    try {
+      const message = await expectError(await cancelRequest(auctionId), 500, 'INTERNAL_ERROR');
+      assert.ok(!message.includes('Injected'));
+      assert.deepEqual((await db.query('SELECT * FROM auctions WHERE id=$1', [auctionId])).rows, before);
+      assert.deepEqual((await db.query('SELECT * FROM bids WHERE auction_id=$1', [auctionId])).rows, beforeBids);
+      assert.equal((await db.query('SELECT 1 FROM audit_logs WHERE entity_id=$1', [auctionId])).rowCount, 0);
+      assert.deepEqual(events, beforeEvents);
+    } finally {
+      await db.query('DROP TRIGGER reject_cancel_audit ON audit_logs');
+      await db.query('DROP FUNCTION reject_cancel_audit()');
+    }
+    assert.equal((await cancelRequest(auctionId)).status, 200);
+    const { rows: [state] } = await db.query('SELECT status,version FROM auctions WHERE id=$1', [auctionId]);
+    assert.deepEqual(state, { status: 'CANCELLED', version: before[0].version + 1 });
+    assert.equal((await db.query('SELECT 1 FROM audit_logs WHERE entity_id=$1', [auctionId])).rowCount, 1);
+    assert.deepEqual(events.slice(beforeEvents.length).map(e => [e.id,e.status,e.version]), [[auctionId,'CANCELLED',state.version]]);
+    await expectError(await cancelRequest(auctionId), 409, 'AUCTION_TERMINAL');
+    assert.equal(events.length, beforeEvents.length + 1);
+  });
+
 });
