@@ -5,7 +5,7 @@ Real-Time Auction Platform — Web Application Development project.
 ## Current status
 
 Staging deployed on 25 November 2026:
-[BIDHUB on Azure + DuckDNS](https://giabao2110-bidhub.duckdns.org/).
+[BIDHUB on Azure + DuckDNS](https://bidhub.duckdns.org/).
 HTTPS/WSS, two-browser registration/publish/bid, protected session cookies and
 private database/API ports were checked against the real host. See
 [deployment evidence and credit limits](docs/STAGING-VERIFICATION-2026-11-25.md).

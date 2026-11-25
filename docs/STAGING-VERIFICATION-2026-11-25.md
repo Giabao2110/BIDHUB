@@ -1,6 +1,12 @@
 # BidHub — Triển khai staging Azure/DuckDNS 25/11/2026
 
-Website: https://giabao2110-bidhub.duckdns.org/
+Website: https://bidhub.duckdns.org/
+
+Cập nhật domain ngày 25/11/2026 theo yêu cầu bỏ tên cá nhân: cấp chứng chỉ
+cho tên mới, đổi WEB_ORIGIN của API, cập nhật Nginx và chuyển hướng địa chỉ
+trước sang tên mới. Dùng cùng VM/DB; không tạo thêm tài nguyên Azure hoặc
+đổi spending limit. HTTPS readiness, UI đăng ký/publish/bid hai context,
+cookie và polling/WebSocket đã chạy lại thành công trên domain mới.
 
 Code được triển khai: `4c580660132fbd3173e44f907d60b10e6123db27`,
 nhánh `Giabao2110/mvp-completion-20261125`, PR nháp #24.
@@ -34,6 +40,10 @@ Subscriber Agreement riêng trước khi đăng ký. Certbot timer và deploy ho
 reload Nginx đã được cấu hình. Kết quả dry-run gia hạn được đối chiếu riêng,
 không suy ra từ việc timer bật.
 
+Đã nhận kết quả dry-run của chứng chỉ tên cũ: “all simulated renewals
+succeeded”. Chứng chỉ mới đã cấp thành công và có renewal config; chưa
+chạy dry-run riêng lần hai cho tên mới.
+
 NSG chỉ mở TCP 80 và 443. Từ máy Windows ngoài Azure: không kết nối được
 tới 22, 3000, 5432, 8080 với timeout 2 giây/cổng. Đây là phép đo tại thời
 điểm kiểm tra, không phải kiểm toán bảo mật toàn diện. DB/API không publish
@@ -53,7 +63,7 @@ ngoài repo với quyền file hạn chế; không đưa vào evidence.
 - Session cookie có tiền tố `__Host-`, Secure, HttpOnly và SameSite=Lax.
 - Giao diện đã mở và kiểm tra trên Chrome qua URL HTTPS công khai.
 
-Giữ một auction mang tên “Staging verification — demo only” và hai tài
+Giữ các auction mang tên “Staging verification — demo only” và tài
 khoản `example.invalid` làm dữ liệu thử. Không phải giao dịch thật. Ảnh mobile
 trong `evidence/2026-11-25/staging-mobile.png`.
 
