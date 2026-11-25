@@ -4,6 +4,13 @@ Real-Time Auction Platform — Web Application Development project.
 
 ## Current status
 
+Staging deployed on 25 November 2026:
+[BIDHUB on Azure + DuckDNS](https://giabao2110-bidhub.duckdns.org/).
+HTTPS/WSS, two-browser registration/publish/bid, protected session cookies and
+private database/API ports were checked against the real host. See
+[deployment evidence and credit limits](docs/STAGING-VERIFICATION-2026-11-25.md).
+This is a course demo using Azure Students credit, not permanent free hosting.
+
 The API serves health, PostgreSQL-backed auth/CSRF, public auction reads, owner-only draft/publish, transactional bid placement, bid history and auction results. The auction detail client joins Socket.IO rooms, resyncs from REST and polls every 15 seconds when disconnected. It retries unconfirmed bids with the original key. Signed-in users can open My bids from the dashboard; administrators can look up auctions and accounts, cancel auctions and disable or enable accounts with an audit reason. The fixture preview is separate from the normal REST routes. Production deployment remains pending.
 
 Public categories are available from PostgreSQL at `GET /api/v1/categories`.

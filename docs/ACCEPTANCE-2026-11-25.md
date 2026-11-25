@@ -1,5 +1,10 @@
 # BidHub — Đối chiếu và bàn giao nghiệm thu 25/11/2026
 
+Cập nhật sau mốc kiểm thử local bên dưới: BH-17 đã có
+[bằng chứng triển khai Azure/DuckDNS](STAGING-VERIFICATION-2026-11-25.md).
+Người dùng đã giao agent tiếp tục hỗ trợ triển khai trong phiên này; các
+checklist “Bảo tự làm” bên dưới ghi lại phạm vi ở mốc bàn giao trước đó.
+
 Nhánh `Giabao2110/mvp-completion-20261125`, base main
 `260053b0792074f626c06e096c91af45821a569d`. Các thay đổi của phiên này
 được kiểm chứng local như ghi bên dưới. Trạng thái CI/PR xem trên nhánh của
