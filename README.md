@@ -49,6 +49,12 @@ Frontend checks: `npm run format:check --workspace @bidhub/web` and `npm run tes
 
 Run `npm run test:realtime --workspace @bidhub/web` for the auction detail checks. The suite uses one browser worker, fixture REST responses and the Socket.IO room handlers on a loopback server. It covers stale snapshots, reconnect resync, polling fallback and cleanup without a database.
 
+Run `npm run test:e2e-db --workspace @bidhub/web` with `TEST_DATABASE_URL`
+pointing to a dedicated disposable PostgreSQL database for desktop/mobile
+checks against the real API, database and scheduler. The suite creates and
+removes its own schema, starts API/Vite on loopback, and requires port 5197.
+See [live E2E setup and acceptance evidence](docs/ACCEPTANCE-2026-11-25.md).
+
 ## Working documents
 
 - [Architecture, database and code ownership](docs/ARCHITECTURE.md)
@@ -57,6 +63,8 @@ Run `npm run test:realtime --workspace @bidhub/web` for the auction detail check
 - [API and realtime contract](docs/API-CONTRACT.md)
 - [Detailed assignments and 8-week timeline](docs/TEAM-PLAN.md)
 - [Operations and demo acceptance](docs/RUNBOOK.md)
+- [Technical report and demo handoff](docs/DEMO-REPORT.md)
+- [25 November acceptance evidence and remaining task checklist](docs/ACCEPTANCE-2026-11-25.md)
 - [Bảo infrastructure/realtime implementation and deployment](docs/BAO-IMPLEMENTATION.md)
 - [Monitoring dashboard, alerts and backup scheduling/retention](docs/MONITORING-OPERATIONS.md)
 - [Bảo independent infrastructure progress and verification, 21 October](docs/BAO-VERIFICATION-2026-10-21.md)

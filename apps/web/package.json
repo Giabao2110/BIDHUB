@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test:preview": "playwright test",
     "test:realtime": "playwright test --config playwright.realtime.config.ts",
+    "test:e2e-db": "playwright test --config playwright.e2e.config.ts",
     "format": "prettier --write src tests playwright*.config.ts index.html",
     "format:check": "prettier --check src tests playwright*.config.ts index.html"
   },

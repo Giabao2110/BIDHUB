@@ -1,16 +1,19 @@
 # BH-02-A — ERD và rules cơ sở
 
-Ngày đối chiếu: 22/10/2026. Main `3439b9b`, migration
-`apps/api/migrations/001_initial.sql`, types `packages/contracts/src/index.ts`.
-Đây là thiết kế và dữ liệu mock để review, không phải bằng chứng API/DB đã chạy.
+Ngày đối chiếu: 25/11/2026, dựa trên main `260053b`, migrations 001–003 và
+types `packages/contracts/src/index.ts`. Tài liệu ghi lại hành vi code đã có;
+fixtures vẫn là mock. Kết quả chạy test được ghi riêng trong
+[bằng chứng nghiệm thu](ACCEPTANCE-2026-11-25.md). Review nghiệp vụ của ba
+thành viên vẫn cần được xác nhận, không suy ra từ việc test pass.
 
 ## Đối chiếu code tích hợp
 
-Main đã có `processAuctionLifecycle` (activate/close/catch-up), runner và
-`withTransaction` với callbacks sau commit. Phần Đạt cần tái sử dụng các seam
-này, review nghiệp vụ và test cạnh tranh cùng bid/cancel service khi có.
-Shared `AuctionSnapshot` và migration 001 vẫn khớp fixtures/ERD bên dưới.
-Nhánh MVP đã có HTTP auth, auction reads, draft và publish; bid API vẫn trong backlog.
+Main có HTTP auth, auction reads, draft/publish, bid transaction, admin,
+personal bids, `processAuctionLifecycle` (activate/close/catch-up), runner và
+`withTransaction` với callbacks sau commit. Bid, cancel và lifecycle dùng
+row lock trước khi đổi auction; session/disable khóa user theo thứ tự ổn định.
+Test nằm tại `modules/bids/bid-service.test.ts`, `modules/admin/routes.test.ts`,
+`jobs/auction-lifecycle.test.ts` trong `apps/api/src/`.
 
 REST và Socket.IO dùng chung quy tắc đọc công khai trong nhánh MVP. Migration
 003 thêm `auctions.was_published`. Các phiên SCHEDULED/ACTIVE/ENDED hiện hữu
@@ -63,6 +66,7 @@ erDiagram
     timestamptz ends_at
     uuid highest_bidder_id FK
     integer version
+    boolean was_published
   }
   bids {
     uuid id PK
@@ -95,11 +99,13 @@ Sơ đồ liệt kê các cột quan hệ/nghiệp vụ chính; title, descripti
 và created_at xem SQL. `audit_logs.entity_id` không có FK đa hình.
 `watchlists` có schema nhưng nằm ngoài MVP của phân đoạn này.
 ERD thể hiện constraint hiện tại: một bid có thể được nhiều result tham chiếu;
-service tương lai phải chặn result trỏ bid của auction khác.
+DB chưa có composite FK đảm bảo bid thuộc đúng auction/winner. Lifecycle hiện
+chọn bid của chính auction và ghi result trong transaction; SQL ghi ngoài
+service vẫn có thể vi phạm quan hệ này.
 
 ## DB bảo vệ gì, service còn phải bảo vệ gì
 
-| Dữ liệu | Constraint hiện có | Invariant cần implementation/tests ở task sau |
+| Dữ liệu | Constraint hiện có | Invariant do service bảo vệ (cần giữ regression) |
 |---|---|---|
 | Users | email unique; role MEMBER/ADMIN | Chuẩn hóa lowercase, validate email; không nhận role từ register body; disabled lấy DB |
 | Sessions | user FK; token_hash unique; expiry bắt buộc | Token ngẫu nhiên lưu hash, hết hạn/revoke, disable revoke sessions; không trả token_hash |
@@ -108,11 +114,12 @@ service tương lai phải chặn result trỏ bid của auction khác.
 | Results | auction PK/FK; winner/bid FK; check bộ null hoặc winner/bid có giá > 0 | ENDED duy nhất một result; bid thuộc auction/winner; final bằng winning amount; cancelled không có winner |
 | Audit | actor FK nullable; details JSONB | Reason và thao tác admin cùng transaction; không chứa secrets |
 
-Lưu ý SQL: nhánh có winner của CHECK result hiện cho phép `final_price_vnd`
-NULL do CHECK chấp nhận UNKNOWN. Không coi constraint này đã bảo vệ bộ ba đầy
-đủ; BH-03-A cần migration bổ sung và test negative. Không sửa migration 001.
-Version chưa có CHECK nonnegative; starts_at và disabled chưa được policy hiện
-tại kiểm tra. Đây là khoảng trống implementation, không phải rule được bỏ qua.
+Migration `002_result_integrity.sql` đã bổ sung CHECK buộc bộ winner/bid/price
+cùng null hoặc đủ ba giá trị với giá dương; version có CHECK >= 0.
+Migration 001 được giữ nguyên. Quyền owner, start/deadline, self-bid và
+disabled account được kiểm tra tại service, không phải SQL CHECK. Test
+migration/negative constraints: `database/migrations.test.ts`; test nghiệp vụ:
+`modules/auctions/write.test.ts`, `modules/bids/bid-service.test.ts`.
 Indexes hiện có: listing `(status,ends_at)`, seller `(seller_id,created_at)`,
 history `(auction_id,created_at DESC,id)`, sessions `(expires_at)`.
 
@@ -135,16 +142,16 @@ history `(auction_id,created_at DESC,id)`, sessions `(expires_at)`.
 - Result không bid: winner/winning bid/final price cùng null. Countdown hết
   chưa đồng nghĩa result sẵn sàng; server chốt mới có kết quả.
 
-## Visibility dùng cho BH-07 và đề xuất cho các route tiếp theo
+## Visibility đã triển khai, chờ nhóm xác nhận chính sách
 
-Thiết kế nhóm chốt guest đọc public và owner sửa draft. Nhánh MVP triển khai
-list/detail, socket join và `/me/auctions` theo ma trận. Quyền admin đọc phiên
-riêng và quy tắc cho các route bid/admin vẫn cần nhóm review.
+List/detail/history/result, socket join, personal routes và admin routes đã
+triển khai theo ma trận. Admin lookup riêng chỉ trả metadata để kiểm duyệt;
+role ADMIN không tự mở quyền đọc detail riêng hoặc sửa draft của người khác.
 
 | Luồng | Guest / member khác | Owner | ADMIN |
 |---|---|---|---|
 | Public list/detail/history/socket join | SCHEDULED/ACTIVE/ENDED và CANCELLED từng công bố | Cùng quyền public | Cùng quyền public |
-| DRAFT hoặc CANCELLED chưa công bố | Không hiện list; detail/history/join trả 404 | Detail riêng; không phát room public | Cần chốt quyền đọc moderation |
+| DRAFT hoặc CANCELLED chưa công bố | Không hiện list; detail/history/join trả 404 | Detail riêng; không phát room public | Detail/history/join như public; lookup moderation riêng trả id/title/status |
 | `/me/auctions` | Guest 401; member chỉ phiên của mình | Tất cả trạng thái của mình | Chỉ phiên của mình; không ngầm mở admin search |
 | `/me/bids` | Guest 401; member chỉ bids của mình | Không nhận bidderId từ client | Chỉ bids của mình |
 | Write draft/publish | Guest 401; member khác 403 | Owner được thao tác theo trạng thái | Không mặc nhiên được sửa draft người khác |
@@ -155,10 +162,10 @@ không email, IP, password/token hash hay idempotency key. Auth trả email ch�
 chính current user. Socket phải dùng cùng visibility với REST.
 
 Dấu `was_published` là boolean vì dữ liệu cũ thiếu thời điểm công bố chính xác.
-Khi triển khai cancel, giữ dấu này và đánh dấu true khi trạng thái trước hủy
+Cancel giữ dấu này và đánh dấu true khi trạng thái trước hủy
 là SCHEDULED/ACTIVE. Không suy từ version hoặc starts_at.
 
-## Quyết định mở và hạn chốt
+## Lựa chọn đã triển khai cần review
 
 | Quyết định | Người cần review | Hạn / phần bị chặn |
 |---|---|---|
@@ -166,8 +173,9 @@ là SCHEDULED/ACTIVE. Không suy từ version hoặc starts_at.
 | Sort và payload list item | Phú + Đạt, Bảo types | Review payload nhánh MVP với frontend |
 | CSRF bootstrap, cookie/session expiry/hash, input/rate limits | Bảo + Phú + Đạt | Review chính sách auth của nhánh MVP |
 | Publish thời gian đã qua, publish lặp, writable fields | Phú + Đạt | Review chính sách draft/publish của nhánh MVP |
-| Replay snapshot ban đầu hay mới nhất; lock order bid/disable/cancel | Bảo + Đạt, Phú consumer | Trước BH-11; key/bidId semantics giữ contract hiện có |
-| Activate/close committed interface, cancelled result response, last-admin guard | Bảo + Phú + Đạt | Trước BH-14/BH-15 |
+| Replay trả bidId cũ và snapshot mới nhất, không phát thêm event; user lock trước auction lock | Bảo + Đạt, Phú consumer | Review service và test replay/concurrency BH-11/BH-19 |
+| Activate/close phát sau commit; result CANCELLED trả 409 AUCTION_CANCELLED; chặn disable admin cuối | Bảo + Phú + Đạt | Review lifecycle/admin và test BH-14/BH-15 |
 
-BH-02-A bàn giao đề xuất và ví dụ để review. Nhánh MVP ghi các lựa chọn đã
-triển khai để Bảo, Phú và Đạt đối chiếu khi tích hợp.
+BH-02 chưa được ghi Done chỉ từ lần đối chiếu này. Bảo, Phú và Đạt cần ghi
+tên/ngày/xác nhận hoặc vấn đề cần sửa trong checklist nghiệm thu; agent không
+điền xác nhận thay thành viên.
