@@ -86,6 +86,24 @@ test('conflicting reserved identity rolls back every seed insert without modifyi
   assert.equal((await db.query('SELECT * FROM auctions')).rowCount, 0);
 });
 
+for (const collision of ['email', 'slug'] as const) {
+  test(`${collision} collision on a different ID rolls back the seed and preserves existing data`, async t => {
+    const db = await database(t);
+    if (collision === 'email') {
+      await db.query(`INSERT INTO users(email,password_hash,display_name)
+        VALUES('bidder@demo.bidhub.invalid','not-login-capable','Existing bidder')`);
+    } else {
+      await db.query("INSERT INTO categories(slug,name) VALUES('demo-electronics','Existing category')");
+    }
+    const tables = ['users', 'categories', 'auctions', 'bids', 'auction_results'] as const;
+    const snapshot = async () => Promise.all(tables.map(async table =>
+      (await db.query(`SELECT * FROM ${table}`)).rows));
+    const before = await snapshot();
+    await assert.rejects(seedDemo(db, password), { code: '23505' });
+    assert.deepEqual(await snapshot(), before);
+  });
+}
+
 test('production and missing/short passwords are rejected before database access', async () => {
   const db = { connect: async () => { throw new Error('must not connect'); } };
   await assert.rejects(seedDemo(db as unknown as pg.Pool, ''), /SEED_DEMO_PASSWORD/);
