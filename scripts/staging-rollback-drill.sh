@@ -46,8 +46,10 @@ verify_ids() {
 lab up -d --no-build --wait api web
 verify_ids
 smoke
-printf 'FROM %s\nLABEL bidhub.rollback.drill="candidate"\n' "$api_id" > "$temp_dir/api.Dockerfile"
-printf 'FROM %s\nRUN sed -i s/api:3000/api:3999/g /etc/nginx/conf.d/default.conf\n' "$web_id" > "$temp_dir/web.Dockerfile"
+docker tag "$api_id" "$project-api:base"
+docker tag "$web_id" "$project-web:base"
+printf 'FROM %s\nLABEL bidhub.rollback.drill="candidate"\n' "$project-api:base" > "$temp_dir/api.Dockerfile"
+printf 'FROM %s\nRUN sed -i s/api:3000/api:3999/g /etc/nginx/conf.d/default.conf\n' "$project-web:base" > "$temp_dir/web.Dockerfile"
 docker build -q -t "$project-api:candidate" -f "$temp_dir/api.Dockerfile" "$temp_dir"
 docker build -q -t "$project-web:candidate" -f "$temp_dir/web.Dockerfile" "$temp_dir"
 export BIDHUB_API_IMAGE=$(docker image inspect --format '{{.Id}}' "$project-api:candidate")
