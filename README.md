@@ -4,6 +4,13 @@ Real-Time Auction Platform — Web Application Development project.
 
 ## Current status
 
+Staging deployed on 25 November 2026:
+[BIDHUB on Azure + DuckDNS](https://bidhub.duckdns.org/).
+HTTPS/WSS, two-browser registration/publish/bid, protected session cookies and
+private database/API ports were checked against the real host. See
+[deployment evidence and credit limits](docs/STAGING-VERIFICATION-2026-11-25.md).
+This is a course demo using Azure Students credit, not permanent free hosting.
+
 The API serves health, PostgreSQL-backed auth/CSRF, public auction reads, owner-only draft/publish, transactional bid placement, bid history and auction results. The auction detail client joins Socket.IO rooms, resyncs from REST and polls every 15 seconds when disconnected. It retries unconfirmed bids with the original key. Signed-in users can open My bids from the dashboard; administrators can look up auctions and accounts, cancel auctions and disable or enable accounts with an audit reason. The fixture preview is separate from the normal REST routes. Production deployment remains pending.
 
 Public categories are available from PostgreSQL at `GET /api/v1/categories`.
@@ -49,6 +56,12 @@ Frontend checks: `npm run format:check --workspace @bidhub/web` and `npm run tes
 
 Run `npm run test:realtime --workspace @bidhub/web` for the auction detail checks. The suite uses one browser worker, fixture REST responses and the Socket.IO room handlers on a loopback server. It covers stale snapshots, reconnect resync, polling fallback and cleanup without a database.
 
+Run `npm run test:e2e-db --workspace @bidhub/web` with `TEST_DATABASE_URL`
+pointing to a dedicated disposable PostgreSQL database for desktop/mobile
+checks against the real API, database and scheduler. The suite creates and
+removes its own schema, starts API/Vite on loopback, and requires port 5197.
+See [live E2E setup and acceptance evidence](docs/ACCEPTANCE-2026-11-25.md).
+
 ## Working documents
 
 - [Architecture, database and code ownership](docs/ARCHITECTURE.md)
@@ -57,10 +70,15 @@ Run `npm run test:realtime --workspace @bidhub/web` for the auction detail check
 - [API and realtime contract](docs/API-CONTRACT.md)
 - [Detailed assignments and 8-week timeline](docs/TEAM-PLAN.md)
 - [Operations and demo acceptance](docs/RUNBOOK.md)
+- [Technical report and demo handoff](docs/DEMO-REPORT.md)
+- [25 November acceptance evidence and remaining task checklist](docs/ACCEPTANCE-2026-11-25.md)
 - [Bảo infrastructure/realtime implementation and deployment](docs/BAO-IMPLEMENTATION.md)
 - [Monitoring dashboard, alerts and backup scheduling/retention](docs/MONITORING-OPERATIONS.md)
 - [Bảo independent infrastructure progress and verification, 21 October](docs/BAO-VERIFICATION-2026-10-21.md)
 
-Infrastructure update: auction room validation/caps, after-commit transaction helper, structured request logs, auction lifecycle scheduler and full-stack Docker/Nginx configuration are implemented. Local Docker builds, Nginx/socket smoke tests and a populated backup/restore exercise passed on 21 October; see the dated verification report for evidence and limits. Bid placement, cancellation and the lifecycle worker share the auction row lock, with PostgreSQL integration tests for their contention paths. Real-host TLS deployment remains unfinished.
+Infrastructure update: auction room validation/caps, after-commit transaction helper, structured request logs, auction lifecycle scheduler and full-stack Docker/Nginx configuration are implemented. Local Docker builds, Nginx/socket smoke tests and a populated backup/restore exercise passed on 21 October; see the dated verification report for evidence and limits. Bid placement, cancellation and the lifecycle worker share the auction row lock, with PostgreSQL integration tests for their contention paths. Real-host TLS staging was deployed on 25 November; see the latest completion handoff for operational checks and remaining team acceptance.
 
 The schedule targets 6 December 2026 provisionally; confirm the course's actual deadline. Money is stored as integer VND and serialized as strings. All times are UTC in storage/API; display in Asia/Ho_Chi_Minh.
+
+Latest operational evidence and outstanding acceptance gates:
+[26 November completion handoff](docs/COMPLETION-2026-11-26.md).

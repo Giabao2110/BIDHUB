@@ -1,4 +1,4 @@
-# BIDHUB — Contract v0.1 (thiết kế, chưa triển khai đầy đủ)
+# BIDHUB — Contract v0.1 (đối chiếu implementation 25/11/2026)
 
 ## Quy ước
 
@@ -71,5 +71,11 @@ vào `AuctionSnapshot`. `openingPriceVnd` và `startsAt` ở metadata scenario �
 
 `image_url` nullable trong SQL nên fixture detail dùng `imageUrl: null`.
 Fixtures là dữ liệu mock. Dùng `test:auth-db` và `test:auctions-db` để kiểm tra
-các route đã triển khai trên PostgreSQL riêng. Response result CANCELLED vẫn
-cần chốt trước khi triển khai.
+các route đã triển khai trên PostgreSQL riêng. Result của CANCELLED công khai
+đã trả 409 `AUCTION_CANCELLED`, có regression trong admin routes.
+Replay bid trả bidId đã chấp nhận và snapshot auction mới nhất; không tạo bid
+hay phát event lần hai. Input tiền được chuẩn hóa, nên `"0100000"` và
+`"100000"` có cùng giá trị khi so replay.
+
+BH-02 còn cần ba thành viên xác nhận chính sách; cập nhật tài liệu không thay
+thế sign-off. Xem [bằng chứng và checklist nghiệm thu](ACCEPTANCE-2026-11-25.md).
