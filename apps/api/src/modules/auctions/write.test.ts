@@ -95,6 +95,25 @@ test('HTTP auction writes validate input and enforce owner-only draft transition
     assert.deepEqual(publicRow, { version: 2, was_published: true });
   });
 
+  await t.test('rejects cross-account PATCH without mutating the draft', async () => {
+    const peer = client();
+    assert.equal((await register(peer, 'peer')).status, 201);
+    const draft = await create();
+    const path = '/auctions/' + draft.id;
+    const payload = { title: 'Owner-approved title' };
+    await expectError(await guest.write(path, 'PATCH', payload), 401, 'UNAUTHENTICATED');
+    const readStored = async () => (await db.query(
+      'SELECT title, version FROM auctions WHERE id=$1', [draft.id],
+    )).rows[0];
+
+    const before = await readStored();
+    await expectError(await peer.write(path, 'PATCH', payload), 403, 'FORBIDDEN');
+    assert.deepEqual(await readStored(), before);
+
+    assert.equal((await owner.write(path, 'PATCH', payload)).status, 200);
+    assert.deepEqual(await readStored(), { title: payload.title, version: before.version + 1 });
+  });
+
   await t.test('serializes concurrent publish and checks the database deadline', async () => {
     const live = await create({ startsAt: at(-1), endsAt: at(1) });
     const path = `/auctions/${live.id}/publish`;
