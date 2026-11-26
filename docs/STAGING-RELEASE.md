@@ -10,4 +10,17 @@ The script tests frontend routes, HTTP liveness and readiness, a DB-backed aucti
 
 The healthy pair passed. The bad pair changed both image IDs and pointed Nginx upstream to API port 3999, causing HTTP 502. The script restored both original image IDs and the smoke suite passed. The DB sentinel still read keep-me. The elapsed time from candidate deployment start through successful rollback verification was 35.623 seconds in this run. The disposable stack and its volume were removed.
 
-The drill used Linux containers on Docker Desktop and HTTP loopback. Separate CI already covers HTTPS/WSS loopback. Remote staging, registry publishing and public DNS/TLS remain future work.
+The drill used Linux containers on Docker Desktop and HTTP loopback. Separate CI already covers HTTPS/WSS loopback. At that date, remote staging and public DNS/TLS had not been deployed.
+
+## Verified on Azure, 26/11/2026
+
+The user subsequently delegated the remaining infrastructure work. Public
+staging HTTPS/WSS is available at https://bidhub.duckdns.org/. A new isolated
+Compose project on the same Azure VM restored the private backup into a
+separate volume and exercised `scripts/staging-rollback-drill.sh`.
+The bad candidate failed, both original image IDs were restored and verified,
+the transport smoke passed, and DB content fingerprints stayed unchanged.
+The measured candidate-to-verified-rollback interval was 31 seconds.
+The disposable project/volume was removed, without rolling back or overwriting
+the public staging database. No registry was published. See the
+[current completion handoff](COMPLETION-2026-11-26.md) for scope and limits.

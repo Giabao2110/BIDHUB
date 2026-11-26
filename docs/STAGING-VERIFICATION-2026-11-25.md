@@ -42,7 +42,7 @@ không suy ra từ việc timer bật.
 
 Đã nhận kết quả dry-run của chứng chỉ tên cũ: “all simulated renewals
 succeeded”. Chứng chỉ mới đã cấp thành công và có renewal config; chưa
-chạy dry-run riêng lần hai cho tên mới.
+chạy dry-run riêng lần hai cho tên mới tại thời điểm báo cáo này. Ngày 26/11, dry-run tên mới đã pass; xem [bàn giao mới](COMPLETION-2026-11-26.md).
 
 NSG chỉ mở TCP 80 và 443. Từ máy Windows ngoài Azure: không kết nối được
 tới 22, 3000, 5432, 8080 với timeout 2 giây/cổng. Đây là phép đo tại thời

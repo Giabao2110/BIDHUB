@@ -18,6 +18,15 @@ case "$project" in *[!a-z0-9-]*) exit 2;; esac
 live() { docker compose --env-file "$env_file" -f infra/compose.app.yaml "$@"; }
 api_id=$(docker inspect --format '{{.Image}}' "$(live ps -q api)")
 web_id=$(docker inspect --format '{{.Image}}' "$(live ps -q web)")
+# The clone API must resolve its own Compose database, never an external DB.
+# Report only a generic error, as URL parser exceptions can include credentials.
+docker run --rm --env-file "$env_file" --entrypoint node "$api_id" -e '
+try {
+  const url = new URL(process.env.DATABASE_URL);
+  if (url.hostname !== "db" || url.pathname !== "/bidhub" ||
+      (url.port && url.port !== "5432")) throw new Error();
+} catch { console.error("Lab requires DATABASE_URL for Compose db:5432/bidhub"); process.exit(2); }
+'
 export BIDHUB_API_IMAGE=$api_id BIDHUB_WEB_IMAGE=$web_id
 export BIDHUB_LAB_PORT=18080 WEB_ORIGIN=http://127.0.0.1:18080
 lab() {

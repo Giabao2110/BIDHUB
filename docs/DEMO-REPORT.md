@@ -60,7 +60,7 @@ restart/catch-up, load và populated restore. Số đo lab cũ không phải
 throughput hoặc SLA production. Phiên 25/11 chưa chạy lại Docker/TLS và
 CI branch cần đối chiếu theo exact SHA ở PR; kết quả local không thay CI.
 
-Slide chỉnh sửa được: [bản review 6 trang](slides/bidhub-demo-review-2026-11-25.pptx).
+Slide chỉnh sửa được: [bản review cập nhật 6 trang](slides/bidhub-demo-review-2026-11-26.pptx).
 Đã render/kiểm tra bố cục và kiểm tra cấu trúc/import file; chưa mở nghiệm thu
 trong PowerPoint của nhóm. Công cụ Spaces lỗi runtime nên dùng file local.
 
@@ -96,5 +96,12 @@ Chuẩn bị phiên ngắn từ đầu để demo luật anti-sniping.
 - BH-22 Bảo tự review secret, backup/restore/rollback và tag sau các gate.
 
 Checklist cụ thể tại [ACCEPTANCE-2026-11-25.md](ACCEPTANCE-2026-11-25.md).
+Đối chiếu vận hành mới nhất tại [bàn giao 26/11](COMPLETION-2026-11-26.md):
+HTTPS/WSS staging và renewal dry-run pass; restore DB riêng khớp fingerprint,
+rollback cô lập trên Azure pass trong 31 giây, lịch backup hàng ngày đã bật.
+Các checkbox tự thực hiện cũ là hướng dẫn lịch sử trước khi người dùng ủy quyền
+agent triển khai, không phải xác nhận Bảo tự làm độc lập. ADMIN thật còn chờ
+email tài khoản, review và rehearsal nhóm chưa có xác nhận.
+
 Ngày 22/11 đã qua; RC 29/11 và bàn giao 06/12 là mốc dự kiến trong kế hoạch,
 cần đối chiếu deadline môn học thực tế. Bản này chưa xác nhận release.
