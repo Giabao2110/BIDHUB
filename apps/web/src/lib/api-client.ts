@@ -5,6 +5,7 @@ export class ApiRequestError extends Error {
     public readonly code: string,
     message: string,
     public readonly requestId?: string,
+    public readonly retryAfterSeconds?: number,
   ) {
     super(message);
   }
@@ -19,6 +20,19 @@ const messages: Record<string, string> = {
   CSRF_INVALID: "Your form security token has expired. Please try again.",
   FORBIDDEN: "You do not have permission to perform this action.",
   NOT_FOUND: "This resource was not found, or this API is not available yet.",
+  BID_TOO_LOW:
+    "Another bid may have changed the price. Check the latest price and bid increment before trying again.",
+  SELF_BIDDING: "You cannot bid on your own auction.",
+  AUCTION_NOT_ACTIVE:
+    "This auction is not accepting bids. Check its latest status.",
+  AUCTION_CANCELLED: "This auction was cancelled and has no winning result.",
+  RESULT_NOT_READY:
+    "The official result is not available yet. Please refresh in a moment.",
+  IDEMPOTENCY_CONFLICT:
+    "This bid request conflicts with an earlier attempt. Refresh the auction before continuing.",
+  AUCTION_TERMINAL:
+    "This auction has already ended or been cancelled. Refresh the search results.",
+  LAST_ADMIN: "The last active administrator cannot be disabled.",
 };
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiRequestError) {
@@ -62,6 +76,9 @@ export async function apiRequest<T>(
       payload?.error?.code ?? "HTTP_ERROR",
       payload?.error?.message ?? "Unable to complete the request.",
       payload?.error?.requestId,
+      /^\d+$/.test(response.headers.get("Retry-After") ?? "")
+        ? Math.min(3600, Number(response.headers.get("Retry-After")))
+        : undefined,
     );
   }
   if (response.status === 204) return undefined as T;

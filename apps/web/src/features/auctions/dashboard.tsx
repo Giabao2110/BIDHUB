@@ -8,6 +8,7 @@ import { useAuth } from "../auth/session";
 import { errorMessage, ApiRequestError } from "../../lib/api-client";
 import { formatMoney } from "../../lib/format";
 import type { AuctionDetailDto } from "../../lib/models";
+import { ConfirmationDialog } from "../../components/confirmation-dialog";
 export function Dashboard() {
   const auth = useAuth();
   const client = useQueryClient();
@@ -17,6 +18,7 @@ export function Dashboard() {
     queryKey: ["private", auth.user?.id, "auctions", page],
     queryFn: ({ signal }) => auctionsApi.mine(page, signal),
     staleTime: 0,
+    refetchInterval: 15_000,
   });
   const [action, setAction] = useState<{
     type: "publish" | "delete";
@@ -92,7 +94,14 @@ export function Dashboard() {
         </p>
       )}
       {action && (
-        <section className="confirmation" aria-labelledby="confirmation-title">
+        <ConfirmationDialog
+          titleId="confirmation-title"
+          pending={pending}
+          dismiss={() => {
+            setAction(null);
+            setError("");
+          }}
+        >
           <h2 id="confirmation-title">
             {action.type === "publish"
               ? "Publish this auction?"
@@ -120,6 +129,7 @@ export function Dashboard() {
             </button>
             <button
               className="button secondary"
+              data-dialog-focus
               disabled={pending}
               onClick={() => {
                 setAction(null);
@@ -129,9 +139,14 @@ export function Dashboard() {
               Keep draft
             </button>
           </div>
-        </section>
+          {error && (
+            <p className="notice notice-error" role="alert">
+              {error}
+            </p>
+          )}
+        </ConfirmationDialog>
       )}
-      {error && (
+      {error && !action && (
         <p className="notice notice-error" role="alert">
           {error}
         </p>
@@ -198,7 +213,9 @@ export function Dashboard() {
                       className="text-link"
                       to={`/auctions/${item.auction.id}`}
                     >
-                      View auction ↗
+                      {item.auction.status === "ENDED"
+                        ? "View result ↗"
+                        : "View auction ↗"}
                     </Link>
                   )}
                 </div>

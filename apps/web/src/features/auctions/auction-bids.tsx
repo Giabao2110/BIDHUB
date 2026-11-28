@@ -1,6 +1,6 @@
 import type { AuctionSnapshot } from "@bidhub/contracts";
 import { useQuery } from "@tanstack/react-query";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import {
   ApiRequestError,
@@ -9,6 +9,7 @@ import {
   errorMessage,
 } from "../../lib/api-client";
 import { formatDate, formatMoney } from "../../lib/format";
+import { useAuth } from "../auth/session";
 
 type Attempt = { key: string; amount: string };
 type BidHistory = {
@@ -32,17 +33,26 @@ export function AuctionBids({
   auction,
   sellerId,
   userId,
+  openingPriceVnd,
   refresh,
 }: {
   auction: AuctionSnapshot;
   sellerId: string;
   userId?: string;
+  openingPriceVnd?: string;
   refresh: () => void;
 }) {
   const path = `/auctions/${auction.id}`;
+  const auth = useAuth();
   const [amount, setAmount] = useState("");
   const [retry, setRetry] = useState<Attempt | null>(null);
   const [pending, setPending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  useEffect(() => {
+    if (!cooldown) return;
+    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
   const [message, setMessage] = useState<{
     text: string;
     error?: boolean;
@@ -69,7 +79,7 @@ export function AuctionBids({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (inFlight.current) return;
+    if (inFlight.current || cooldown) return;
     const entered = amount.trim();
     if (
       !retry &&
@@ -114,6 +124,11 @@ export function AuctionBids({
         error: true,
       });
       if (unknown) void history.refetch();
+      if (error instanceof ApiRequestError) {
+        if (error.status === 429) setCooldown(error.retryAfterSeconds ?? 10);
+        if (error.status === 401 || error.code === "ACCOUNT_DISABLED")
+          void auth.refresh();
+      }
     } finally {
       refresh();
       inFlight.current = false;
@@ -137,8 +152,15 @@ export function AuctionBids({
         ) : (
           <form onSubmit={submit} className="bid-form">
             <label htmlFor="bid-amount">Bid amount (VND)</label>
+            <p id="bid-help" className="helper">
+              {history.data?.total === 0 && openingPriceVnd
+                ? `Opening bid: ${formatMoney(openingPriceVnd)} or more.`
+                : `Use whole VND amounts. Bid increment: ${formatMoney(auction.minimumIncrementVnd)}.`}{" "}
+              The server checks the latest price when you submit.
+            </p>
             <input
               id="bid-amount"
+              aria-describedby="bid-help"
               inputMode="numeric"
               autoComplete="off"
               maxLength={19}
@@ -147,54 +169,88 @@ export function AuctionBids({
               disabled={pending || !!retry}
               required
             />
-            <button type="submit" className="button full" disabled={pending}>
-              {pending ? "Submitting…" : retry ? "Retry same bid" : "Place bid"}
+            <button
+              type="submit"
+              className="button full"
+              disabled={pending || cooldown > 0}
+            >
+              {pending
+                ? "Submitting…"
+                : cooldown
+                  ? `Try again in ${cooldown}s`
+                  : retry
+                    ? "Retry same bid"
+                    : "Place bid"}
             </button>
           </form>
         ))}
       {message && (
-        <p role={message.error ? "alert" : "status"}>{message.text}</p>
+        <p
+          className={`notice${message.error ? " notice-error" : ""}`}
+          role={message.error ? "alert" : "status"}
+        >
+          {message.text}
+        </p>
       )}
       {auction.status === "ENDED" && (
-        <section>
-          <h2>Auction result</h2>
+        <section className="auction-result" aria-labelledby="result-title">
+          <h2 id="result-title">Auction result</h2>
           {result.isPending ? (
             <p>Loading result…</p>
           ) : result.isError ? (
-            <button type="button" onClick={() => void result.refetch()}>
-              Retry loading result
-            </button>
+            <div>
+              <p role="alert">{errorMessage(result.error)}</p>
+              <button type="button" onClick={() => void result.refetch()}>
+                Retry loading result
+              </button>
+            </div>
           ) : result.data.winner && result.data.finalPriceVnd !== null ? (
-            <p>
-              {result.data.winner.displayName} won at{" "}
-              {formatMoney(result.data.finalPriceVnd)}.
-            </p>
+            <div>
+              <p>
+                {result.data.winner.displayName} won at{" "}
+                {formatMoney(result.data.finalPriceVnd)}.
+              </p>
+              {userId === result.data.winner.id && (
+                <p className="notice" role="status">
+                  You won this auction.
+                </p>
+              )}
+              <p className="helper">
+                Closed: {formatDate(result.data.closedAt)} (Vietnam time)
+              </p>
+            </div>
           ) : (
             <p>No winning bid.</p>
           )}
         </section>
       )}
-      <section>
+      <section className="bid-history">
         <h2>Bid history</h2>
         {history.isPending ? (
           <p>Loading bids…</p>
         ) : history.isError ? (
-          <button type="button" onClick={() => void history.refetch()}>
-            Retry loading bid history
-          </button>
+          <div>
+            <p role="alert">{errorMessage(history.error)}</p>
+            <button type="button" onClick={() => void history.refetch()}>
+              Retry loading bid history
+            </button>
+          </div>
         ) : (
           <>
             {history.data.items.length === 0 ? (
               <p>No bids on this page.</p>
             ) : (
-              <ul>
+              <ol className="bid-history-list">
                 {history.data.items.map((bid) => (
                   <li key={bid.id}>
-                    {bid.bidderDisplayName} — {formatMoney(bid.amountVnd)} ·{" "}
-                    {formatDate(bid.createdAt)}
+                    <span>{bid.bidderDisplayName}</span>
+                    <strong>{formatMoney(bid.amountVnd)}</strong>
+                    <time dateTime={bid.createdAt}>
+                      {formatDate(bid.createdAt)}
+                    </time>
                   </li>
                 ))}
-              </ul>
+              </ol>
             )}
             {page > 1 && (
               <button type="button" onClick={() => setPage(page - 1)}>
