@@ -12,6 +12,7 @@ import {
 } from "../../lib/api-client";
 import type { User } from "../../lib/models";
 import { useAuth } from "../auth/session";
+import { ConfirmationDialog } from "../../components/confirmation-dialog";
 
 type Auction = { id: string; title: string; status: AuctionStatus };
 type Account = User & { disabled: boolean };
@@ -138,7 +139,11 @@ function ModerationPanel() {
         </p>
       )}
       {action && (
-        <section className="confirmation" aria-labelledby="moderation-confirm">
+        <ConfirmationDialog
+          titleId="moderation-confirm"
+          pending={pending}
+          dismiss={() => setAction(null)}
+        >
           <h2 id="moderation-confirm">{verb}?</h2>
           <p>
             {action.kind === "auction" ? action.item.title : action.item.email}
@@ -152,6 +157,7 @@ function ModerationPanel() {
             <label>
               Reason
               <textarea
+                data-dialog-focus
                 required
                 maxLength={300}
                 value={reason}
@@ -178,7 +184,7 @@ function ModerationPanel() {
               </button>
             </div>
           </form>
-        </section>
+        </ConfirmationDialog>
       )}
       <div className="moderation-grid">
         <section className="form-panel" aria-labelledby="moderate-auctions">

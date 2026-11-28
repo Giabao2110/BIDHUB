@@ -69,6 +69,16 @@ export function MyBids() {
                   <time dateTime={bid.createdAt}>
                     {formatDate(bid.createdAt)}
                   </time>
+                  {bid.auctionStatus === "ENDED" && (
+                    <p>
+                      <Link
+                        className="text-link"
+                        to={`/auctions/${bid.auctionId}`}
+                      >
+                        View official result ↗
+                      </Link>
+                    </p>
+                  )}
                 </div>
                 <StatusBadge status={bid.auctionStatus} />
                 <strong>{formatMoney(bid.amountVnd)}</strong>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { auctionsApi } from "../../lib/auctions-api";
@@ -157,6 +157,17 @@ export function AuctionDetail() {
   const { id = "" } = useParams();
   const auth = useAuth();
   const { detail, denied, liveStatus } = useAuctionDetail(id, auth.user?.id);
+  const previousEnd = useRef<{ id: string; value: string } | null>(null);
+  const [extended, setExtended] = useState(false);
+  useEffect(() => {
+    const snapshot = detail.data?.item.auction;
+    if (!snapshot) return;
+    const previous = previousEnd.current;
+    if (previous?.id !== snapshot.id) setExtended(false);
+    else if (Date.parse(snapshot.endsAt) > Date.parse(previous.value))
+      setExtended(true);
+    previousEnd.current = { id: snapshot.id, value: snapshot.endsAt };
+  }, [detail.data?.item.auction.id, detail.data?.item.auction.endsAt]);
   if (detail.isPending) return <StatePanel kind="loading" />;
   if (denied || !detail.data)
     return detail.error instanceof ApiRequestError &&
@@ -220,6 +231,12 @@ export function AuctionDetail() {
               <Countdown auction={item.auction} receivedAt={receivedAt} />
             </strong>
           </div>
+          {extended && item.auction.status === "ACTIVE" && (
+            <p className="notice" role="status">
+              The auction was extended after a late bid. The countdown uses the
+              updated deadline.
+            </p>
+          )}
           {auth.user?.id === item.seller.id &&
             item.auction.status === "DRAFT" && (
               <Link className="button full" to={`/auctions/${id}/edit`}>
@@ -231,6 +248,7 @@ export function AuctionDetail() {
             auction={item.auction}
             sellerId={item.seller.id}
             userId={auth.user?.id}
+            openingPriceVnd={item.openingPriceVnd}
             refresh={() => void detail.refetch()}
           />
           {liveStatus && (

@@ -1419,6 +1419,54 @@ fieldset:disabled {
   border-radius: 8px;
   margin: 20px 0;
 }
+.confirmation-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  color: var(--ink);
+  overflow: auto;
+}
+.confirmation-dialog::backdrop {
+  background: rgb(23 35 64 / 55%);
+}
+.bid-history,
+.auction-result {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.bid-history-list {
+  list-style: none;
+  padding: 0;
+}
+.bid-history-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.bid-history-list time {
+  width: 100%;
+  color: var(--muted);
+  font-size: 12px;
+}
+.bid-panel .notice,
+.moderation-results li,
+.dashboard-row h2 {
+  overflow-wrap: anywhere;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
 .confirmation h2 {
   font-size: 22px;
 }
